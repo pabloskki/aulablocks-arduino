@@ -16,7 +16,8 @@ app.innerHTML = `
     <header class="topbar">
       <div class="brand" aria-label="AulaBlocks Arduino">
         <img class="brand-mark" src="${robotLogo}" alt="" />
-        <div><strong>AulaBlocks</strong><small>Arduino</small></div>
+        <div class="brand-title"><strong>AulaBlocks</strong><small>Arduino</small></div>
+        <button class="app-version-badge" id="check-app-updates" title="Buscar actualizaciones del programa">🔄 <span id="app-version-text">v…</span></button>
       </div>
       <label class="project-name-wrap">
         <span>Proyecto</span>
@@ -139,13 +140,28 @@ app.innerHTML = `
     <div class="modal-backdrop hidden" id="sensor-library-modal">
       <div class="modal sensor-library-modal" role="dialog" aria-modal="true" aria-labelledby="sensor-library-title">
         <button class="modal-close" id="sensor-library-close" aria-label="Cerrar">×</button>
-        <div class="library-dialog-heading"><span>📚</span><div><span class="eyebrow">INSTALADOS EN ESTE PC</span><h2 id="sensor-library-title">Biblioteca de sensores</h2></div></div>
-        <p>Elige solamente los sensores que utilizarás en el proyecto actual.</p>
-        <div class="sensor-updates-row">
-          <button class="button ghost" id="check-sensor-updates">🔄 Buscar actualizaciones de sensores</button>
-          <small id="sensor-updates-status"></small>
+        <div class="library-dialog-heading"><span>📚</span><div><span class="eyebrow">SENSORES</span><h2 id="sensor-library-title">Biblioteca de sensores</h2></div></div>
+        <div class="sensor-source-tabs" role="tablist">
+          <button class="sensor-source-tab active" id="sensor-source-local" role="tab" aria-selected="true">💻 Instalados en este PC</button>
+          <button class="sensor-source-tab" id="sensor-source-online" role="tab" aria-selected="false">🌐 Disponibles en línea</button>
         </div>
-        <div id="sensor-catalog-list" class="sensor-catalog-list"></div>
+        <div id="sensor-local-panel">
+          <p>Elige solamente los sensores que utilizarás en el proyecto actual.</p>
+          <div class="sensor-updates-row">
+            <button class="button ghost" id="check-sensor-updates">🔄 Buscar actualizaciones de sensores</button>
+            <small id="sensor-updates-status"></small>
+          </div>
+          <div id="sensor-catalog-list" class="sensor-catalog-list"></div>
+        </div>
+        <div id="sensor-online-panel" class="hidden">
+          <p>Selecciona uno o varios sensores para instalarlos directamente desde GitHub.</p>
+          <div class="sensor-updates-row">
+            <button class="button ghost" id="online-select-all">Seleccionar todos</button>
+            <button class="button primary" id="online-install-selected">⬇ Instalar seleccionados</button>
+            <small id="sensor-online-status"></small>
+          </div>
+          <div id="sensor-online-list" class="sensor-catalog-list"></div>
+        </div>
       </div>
     </div>
     <div class="modal-backdrop hidden" id="variable-modal">
@@ -267,6 +283,13 @@ document.querySelector('#open-sensor-library').addEventListener('click', openSen
 document.querySelector('#sensor-library-close').addEventListener('click', closeSensorLibrary);
 document.querySelector('#sensor-library-modal').addEventListener('click', (event) => { if (event.target.id === 'sensor-library-modal') closeSensorLibrary(); });
 document.querySelector('#check-sensor-updates').addEventListener('click', checkSensorUpdates);
+document.querySelector('#sensor-source-local').addEventListener('click', () => switchSensorSource('local'));
+document.querySelector('#sensor-source-online').addEventListener('click', () => switchSensorSource('online'));
+document.querySelector('#online-select-all').addEventListener('click', toggleSelectAllOnlineSensors);
+document.querySelector('#online-install-selected').addEventListener('click', installSelectedOnlineSensors);
+document.querySelector('#sensor-online-list').addEventListener('change', (event) => {
+  if (event.target.matches('input[type="checkbox"][data-online-sensor-id]')) updateOnlineInstallButtonState();
+});
 document.querySelector('#variable-form').addEventListener('submit', createVariable);
 document.querySelector('#variable-close').addEventListener('click', closeVariableModal);
 document.querySelector('#variable-modal').addEventListener('click', (event) => { if (event.target.id === 'variable-modal') closeVariableModal(); });
@@ -322,12 +345,49 @@ if (window.aulaBlocks?.installCh340Driver && window.aulaBlocks?.platform === 'wi
   document.querySelector('#install-usb-driver').hidden = false;
 }
 if (window.aulaBlocks?.onUpdateStatus) window.aulaBlocks.onUpdateStatus(handleUpdateStatus);
+if (window.aulaBlocks?.appVersion) document.querySelector('#app-version-text').textContent = `v${window.aulaBlocks.appVersion}`;
+else document.querySelector('#check-app-updates').hidden = true;
+document.querySelector('#check-app-updates').addEventListener('click', checkAppUpdatesManually);
 updateBoardControls();
 loadSensorCatalog();
 
 let updateDownloadAsked = false;
+let manualUpdateCheckPending = false;
+
+async function checkAppUpdatesManually() {
+  if (!window.aulaBlocks?.checkForUpdates) return;
+  const button = document.querySelector('#check-app-updates');
+  button.disabled = true;
+  manualUpdateCheckPending = true;
+  updateDownloadAsked = false;
+  const versionText = document.querySelector('#app-version-text').textContent;
+  document.querySelector('#app-version-text').textContent = 'Buscando…';
+  try {
+    await window.aulaBlocks.checkForUpdates();
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+      if (manualUpdateCheckPending) {
+        manualUpdateCheckPending = false;
+        document.querySelector('#app-version-text').textContent = versionText;
+        showToast('No pudimos confirmar el resultado. Intenta más tarde.');
+      }
+    }, 8000);
+  }
+}
 
 async function handleUpdateStatus(status) {
+  if (status.state !== 'downloading') {
+    const wasManual = manualUpdateCheckPending;
+    manualUpdateCheckPending = false;
+    document.querySelector('#check-app-updates').disabled = false;
+    if (wasManual) {
+      const versionLabel = window.aulaBlocks?.appVersion ? `v${window.aulaBlocks.appVersion}` : 'v…';
+      document.querySelector('#app-version-text').textContent = versionLabel;
+      if (status.state === 'not-available') showToast('Ya tienes la última versión de AulaBlocks.');
+      if (status.state === 'error') showToast(status.message || 'No pudimos revisar actualizaciones. Revisa tu conexión a internet.');
+    }
+  }
   if (status.state === 'available' && !updateDownloadAsked) {
     updateDownloadAsked = true;
     if (status.canAutoInstall) {
@@ -989,7 +1049,7 @@ async function checkSensorUpdates() {
       status.textContent = 'Todos los sensores están al día.';
       return;
     }
-    const lista = result.updates.map((item) => `${item.name}: ${item.localVersion ? `${item.localVersion} → ${item.remoteVersion}` : `nuevo, ${item.remoteVersion}`}`).join('\n');
+    const lista = result.updates.map((item) => `${item.name}: ${item.localVersion} → ${item.remoteVersion}`).join('\n');
     const proceed = await askConfirmation(
       `${result.updates.length} sensor${result.updates.length === 1 ? '' : 'es'} con actualización`,
       `Se instalarán estas versiones:\n\n${lista}`,
@@ -1002,10 +1062,19 @@ async function checkSensorUpdates() {
     status.textContent = 'Instalando…';
     const installResults = await window.aulaBlocks.installSensorUpdates(result.updates);
     const failed = installResults.filter((item) => !item.ok);
+    let refreshedInProject = 0;
+    installResults.forEach((item) => {
+      if (item.ok && item.extension && extensions.some((existing) => existing.id === item.extension.id)) {
+        registerExtension(item.extension, false);
+        refreshedInProject += 1;
+      }
+    });
+    if (refreshedInProject) { rebuildToolbox(); updateCode(); }
     await loadSensorCatalog();
+    const refreshNote = refreshedInProject ? ` Se refrescaron ${refreshedInProject} en el proyecto actual.` : '';
     status.textContent = failed.length
       ? `Se instalaron ${installResults.length - failed.length} de ${installResults.length}. Fallaron: ${failed.map((f) => f.name).join(', ')}.`
-      : `Listo: se actualizaron ${installResults.length} sensor${installResults.length === 1 ? '' : 'es'}.`;
+      : `Listo: se actualizaron ${installResults.length} sensor${installResults.length === 1 ? '' : 'es'}.${refreshNote}`;
   } catch (error) {
     status.textContent = error.message || 'No pudimos revisar actualizaciones.';
   } finally {
@@ -1013,8 +1082,111 @@ async function checkSensorUpdates() {
   }
 }
 
+let onlineSensorCatalog = [];
+
+function switchSensorSource(source) {
+  const isOnline = source === 'online';
+  document.querySelector('#sensor-source-local').classList.toggle('active', !isOnline);
+  document.querySelector('#sensor-source-local').setAttribute('aria-selected', String(!isOnline));
+  document.querySelector('#sensor-source-online').classList.toggle('active', isOnline);
+  document.querySelector('#sensor-source-online').setAttribute('aria-selected', String(isOnline));
+  document.querySelector('#sensor-local-panel').classList.toggle('hidden', isOnline);
+  document.querySelector('#sensor-online-panel').classList.toggle('hidden', !isOnline);
+  if (isOnline) loadOnlineSensorCatalog();
+}
+
+async function loadOnlineSensorCatalog() {
+  const list = document.querySelector('#sensor-online-list');
+  const status = document.querySelector('#sensor-online-status');
+  if (!window.aulaBlocks?.listOnlineSensorCatalog) {
+    status.textContent = 'Esta función solo está disponible en la aplicación de escritorio.';
+    list.innerHTML = '';
+    return;
+  }
+  status.textContent = 'Cargando catálogo desde GitHub…';
+  list.innerHTML = '';
+  try {
+    const result = await window.aulaBlocks.listOnlineSensorCatalog();
+    if (!result.ok) {
+      status.textContent = result.message || 'No pudimos leer el catálogo en línea. Revisa tu conexión a internet.';
+      return;
+    }
+    onlineSensorCatalog = result.catalog;
+    status.textContent = '';
+    renderOnlineSensorCatalog();
+  } catch (error) {
+    status.textContent = error.message || 'No pudimos leer el catálogo en línea.';
+  }
+}
+
+function renderOnlineSensorCatalog() {
+  const target = document.querySelector('#sensor-online-list');
+  if (!onlineSensorCatalog.length) {
+    target.innerHTML = '<div class="catalog-empty"><span>🌐</span><strong>No hay sensores en el catálogo</strong></div>';
+    updateOnlineInstallButtonState();
+    return;
+  }
+  target.innerHTML = onlineSensorCatalog.map((sensor) => {
+    let badge = '<b>✔ Al día</b>';
+    if (sensor.isNew) badge = '<b class="badge-new">Nuevo</b>';
+    else if (sensor.hasUpdate) badge = `<b class="badge-update">Actualización: ${escapeHtml(sensor.localVersion)} → ${escapeHtml(sensor.remoteVersion)}</b>`;
+    return `<article class="sensor-catalog-item online-item"><label><input type="checkbox" data-online-sensor-id="${escapeHtml(sensor.id)}"><div><strong>${escapeHtml(sensor.name)}</strong><small>v${escapeHtml(sensor.remoteVersion)}${sensor.localVersion ? ` · instalado: v${escapeHtml(sensor.localVersion)}` : ''}</small>${badge}</div></label></article>`;
+  }).join('');
+  updateOnlineInstallButtonState();
+}
+
+function toggleSelectAllOnlineSensors() {
+  const boxes = [...document.querySelectorAll('#sensor-online-list input[data-online-sensor-id]')];
+  const allChecked = boxes.every((box) => box.checked);
+  boxes.forEach((box) => { box.checked = !allChecked; });
+  updateOnlineInstallButtonState();
+}
+
+function updateOnlineInstallButtonState() {
+  const checked = document.querySelectorAll('#sensor-online-list input[data-online-sensor-id]:checked').length;
+  const button = document.querySelector('#online-install-selected');
+  button.disabled = checked === 0;
+  button.textContent = checked ? `⬇ Instalar seleccionados (${checked})` : '⬇ Instalar seleccionados';
+}
+
+async function installSelectedOnlineSensors() {
+  const status = document.querySelector('#sensor-online-status');
+  const checkedIds = [...document.querySelectorAll('#sensor-online-list input[data-online-sensor-id]:checked')].map((box) => box.dataset.onlineSensorId);
+  const selected = onlineSensorCatalog.filter((sensor) => checkedIds.includes(sensor.id));
+  if (!selected.length) return;
+  document.querySelector('#online-install-selected').disabled = true;
+  document.querySelector('#online-select-all').disabled = true;
+  const outcomes = [];
+  for (let index = 0; index < selected.length; index += 1) {
+    const sensor = selected[index];
+    status.textContent = `Instalando ${index + 1} de ${selected.length}: ${sensor.name}…`;
+    try {
+      const installResults = await window.aulaBlocks.installSensorUpdates([sensor]);
+      const outcome = installResults[0];
+      if (outcome?.ok && outcome.extension) {
+        registerExtension(outcome.extension, true);
+        outcomes.push({ name: sensor.name, ok: true });
+      } else {
+        outcomes.push({ name: sensor.name, ok: false, message: outcome?.message });
+      }
+    } catch (error) {
+      outcomes.push({ name: sensor.name, ok: false, message: error.message });
+    }
+  }
+  rebuildToolbox();
+  updateCode();
+  await loadSensorCatalog();
+  await loadOnlineSensorCatalog();
+  document.querySelector('#online-select-all').disabled = false;
+  const failed = outcomes.filter((item) => !item.ok);
+  status.textContent = failed.length
+    ? `Se instalaron ${outcomes.length - failed.length} de ${outcomes.length}. Fallaron: ${failed.map((f) => f.name).join(', ')}.`
+    : `Listo: se instalaron ${outcomes.length} sensor${outcomes.length === 1 ? '' : 'es'} y ya están disponibles en este proyecto.`;
+}
+
 function openSensorLibrary() {
   renderSensorCatalog();
+  switchSensorSource('local');
   document.querySelector('#sensor-library-modal').classList.remove('hidden');
 }
 

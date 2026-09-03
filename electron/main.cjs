@@ -104,7 +104,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      additionalArguments: [`--app-version=${app.getVersion()}`]
     }
   });
 
@@ -175,6 +176,13 @@ ipcMain.handle('sensor-updates-check', async () => {
     return { ok: true, updates: await sensorUpdatesService().checkForUpdates() };
   } catch (error) {
     return { ok: false, message: error.message || 'No pudimos revisar actualizaciones de sensores.' };
+  }
+});
+ipcMain.handle('sensor-updates-list-catalog', async () => {
+  try {
+    return { ok: true, catalog: await sensorUpdatesService().listCatalog() };
+  } catch (error) {
+    return { ok: false, message: error.message || 'No pudimos leer el catálogo de sensores en línea.' };
   }
 });
 ipcMain.handle('sensor-updates-install', async (_event, entries) => sensorUpdatesService().installUpdates(entries));

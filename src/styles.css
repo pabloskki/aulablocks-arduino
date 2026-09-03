@@ -20,10 +20,13 @@ button { cursor: pointer; }
 .app-shell { height: 100vh; display: flex; flex-direction: column; background: #f6f4fb; }
 .topbar { height: 76px; display: flex; align-items: center; gap: 32px; padding: 0 24px; background: #fff; border-bottom: 1px solid var(--line); position: relative; z-index: 5; }
 .brand { display: flex; align-items: center; gap: 11px; min-width: 210px; }
-.brand > div:last-child { display: flex; align-items: baseline; gap: 5px; }
+.brand-title { display: flex; align-items: baseline; gap: 5px; }
 .brand strong { font-size: 20px; letter-spacing: -0.5px; color: #35286b; }
 .brand small { color: var(--purple); font-weight: 700; }
 .brand-mark { width: 56px; height: 56px; object-fit: contain; flex: none; }
+.app-version-badge { border: 1px solid var(--line); background: #f6f4ff; color: #6a6f82; border-radius: 999px; padding: 4px 10px; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.app-version-badge:hover { background: #eeeafd; color: var(--purple); }
+.app-version-badge:disabled { opacity: .6; cursor: wait; }
 
 .project-name-wrap { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 520px; }
 .project-name-wrap span { color: var(--muted); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
@@ -163,9 +166,19 @@ button { cursor: pointer; }
 .remove-sensor-symbol { width: 58px; height: 58px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 19px; color: white; background: linear-gradient(145deg, #ef7a82, #c84e5b); font-size: 34px; font-weight: 800; }.remove-sensor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.button.danger { color: white; background: #cf5561; }
 .confirm-symbol { background: linear-gradient(145deg, #efab52, #d9822e); }
 #confirm-message { white-space: pre-line; text-align: left; }
-.sensor-updates-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.sensor-updates-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
 .sensor-updates-row .button { font-size: 10px; padding: 8px 12px; white-space: nowrap; }
 .sensor-updates-row small { color: #7d8393; font-size: 9.5px; }
+.sensor-source-tabs { display: flex; gap: 8px; margin: 14px 0 4px; border-bottom: 1px solid var(--line); }
+.sensor-source-tab { border: 0; background: transparent; padding: 9px 4px; margin-bottom: -1px; color: #8a8fa0; font-size: 11px; font-weight: 800; border-bottom: 2px solid transparent; cursor: pointer; }
+.sensor-source-tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+#sensor-online-panel.hidden, #sensor-local-panel.hidden { display: none; }
+.sensor-catalog-item.online-item { padding: 0; }
+.sensor-catalog-item.online-item label { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 10px; cursor: pointer; }
+.sensor-catalog-item.online-item input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; flex: none; }
+.badge-new { margin-top: 5px; color: #2f7fbf; font-size: 8.5px; font-weight: 800; }
+.badge-update { margin-top: 5px; color: #b3791e; font-size: 8.5px; font-weight: 800; }
+#online-install-selected:disabled { opacity: .5; cursor: not-allowed; }
 #monitor-detail { margin-top: 5px; color: #7d8393; font-size: 8.5px; text-align: left; }#monitor-detail.hidden { display: none; }#monitor-detail summary { cursor: pointer; }#monitor-detail-text { max-height: 90px; overflow: auto; margin: 6px 0 0; padding: 7px; border-radius: 7px; background: #29263a; color: #d7e8df; white-space: pre-wrap; font-size: 8px; }
 .catalog-empty { display: grid; justify-items: center; gap: 5px; padding: 30px; border: 1px dashed #d6d0e8; border-radius: 14px; color: #777e91; text-align: center; }.catalog-empty > span { font-size: 27px; }.catalog-empty strong { font-size: 12px; }.catalog-empty small { font-size: 9px; }
 
