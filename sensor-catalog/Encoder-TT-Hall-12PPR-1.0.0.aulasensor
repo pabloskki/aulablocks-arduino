@@ -1,0 +1,298 @@
+{
+  "packageFormat": "aulablocks-sensor",
+  "packageVersion": 1,
+  "compatibility": [
+    "Arduino Uno ATmega328P",
+    "Nano ATmega328PB"
+  ],
+  "id": "encoder-motor-tt-hall-12ppr",
+  "name": "Motor TT Hall · encoder 12 PPR",
+  "categoryName": "Encoder TT 12 PPR",
+  "version": "1.0.0",
+  "icon": "🔄",
+  "colour": "#39865d",
+  "description": "Cuenta pulsos y sentido de giro de un encoder Hall en un motor TT.",
+  "image": {
+    "mimeType": "image/svg+xml",
+    "encoding": "utf8",
+    "alt": "TT HALL para proyectos Arduino",
+    "data": "<svg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'><rect width='440' height='300' rx='28' fill='#f5f7fb'/><rect x='65' y='42' width='310' height='190' rx='24' fill='#39865d'/><circle cx='140' cy='137' r='48' fill='#fff' opacity='.88'/><circle cx='300' cy='137' r='48' fill='#fff' opacity='.26'/><path d='M178 137h84M220 95v84' stroke='#fff' stroke-width='12' stroke-linecap='round'/><text x='220' y='272' text-anchor='middle' font-family='Arial' font-size='25' font-weight='700' fill='#25324b'>TT HALL</text><text x='220' y='220' text-anchor='middle' font-family='Arial' font-size='18' font-weight='700' fill='#fff'>ENCODER 12 PPR</text></svg>"
+  },
+  "wiring": {
+    "interface": "Encoder de dos canales",
+    "uno": [
+      "Motor +/− → salida A o B del TB6612",
+      "Encoder VCC → tensión indicada por el vendedor",
+      "Encoder GND → GND común",
+      "Canal A → D2 o D3",
+      "Canal B → pin digital elegido"
+    ],
+    "nano328pb": [
+      "Motor +/− → salida A o B del TB6612",
+      "Encoder VCC → tensión indicada por el vendedor",
+      "Encoder GND → GND común",
+      "Canal A → D2 o D3",
+      "Canal B → pin digital elegido"
+    ],
+    "note": "El TB6612 controla solamente los cables del motor. Los canales Hall van al Arduino. Si 12 PPR corresponde al eje antes de la reductora, las vueltas de la rueda también dependen de la relación de engranajes."
+  },
+  "libraries": [],
+  "bundledLibraries": [],
+  "blocks": [
+    {
+      "includes": [],
+      "globals": [
+        "volatile long encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} = 0;",
+        "void encoder_isr_{{CHANNEL_A}}_{{CHANNEL_B}}() {\n  encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} += digitalRead({{CHANNEL_B}}) == HIGH ? 1 : -1;\n}"
+      ],
+      "setup": [
+        "pinMode({{CHANNEL_A}}, INPUT_PULLUP);",
+        "pinMode({{CHANNEL_B}}, INPUT_PULLUP);",
+        "attachInterrupt(digitalPinToInterrupt({{CHANNEL_A}}), encoder_isr_{{CHANNEL_A}}_{{CHANNEL_B}}, RISING);"
+      ],
+      "helpers": [
+        "long leerCuentaEncoder(volatile long &cuenta) {\n  noInterrupts();\n  long copia = cuenta;\n  interrupts();\n  return copia;\n}"
+      ],
+      "type": "tt_encoder_pulses",
+      "message0": "pulsos encoder TT · canal A %1 canal B %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL_A",
+          "options": [
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL_B",
+          "options": [
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Number",
+      "code": "leerCuentaEncoder(encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}})",
+      "tooltip": "Entrega pulsos con signo; el signo indica el sentido de giro."
+    },
+    {
+      "includes": [],
+      "globals": [
+        "volatile long encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} = 0;",
+        "void encoder_isr_{{CHANNEL_A}}_{{CHANNEL_B}}() {\n  encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} += digitalRead({{CHANNEL_B}}) == HIGH ? 1 : -1;\n}"
+      ],
+      "setup": [
+        "pinMode({{CHANNEL_A}}, INPUT_PULLUP);",
+        "pinMode({{CHANNEL_B}}, INPUT_PULLUP);",
+        "attachInterrupt(digitalPinToInterrupt({{CHANNEL_A}}), encoder_isr_{{CHANNEL_A}}_{{CHANNEL_B}}, RISING);"
+      ],
+      "helpers": [
+        "long leerCuentaEncoder(volatile long &cuenta) {\n  noInterrupts();\n  long copia = cuenta;\n  interrupts();\n  return copia;\n}"
+      ],
+      "type": "tt_encoder_revolutions",
+      "message0": "vueltas encoder TT · canal A %1 canal B %2 · PPR %3",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL_A",
+          "options": [
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL_B",
+          "options": [
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_number",
+          "name": "PPR",
+          "value": 12,
+          "min": 1,
+          "max": 10000,
+          "precision": 1
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Number",
+      "code": "((float)leerCuentaEncoder(encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}}) / {{PPR}})",
+      "tooltip": "Convierte pulsos a vueltas usando el PPR indicado."
+    },
+    {
+      "includes": [],
+      "globals": [
+        "volatile long encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} = 0;",
+        "void encoder_isr_{{CHANNEL_A}}_{{CHANNEL_B}}() {\n  encoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} += digitalRead({{CHANNEL_B}}) == HIGH ? 1 : -1;\n}"
+      ],
+      "setup": [
+        "pinMode({{CHANNEL_A}}, INPUT_PULLUP);",
+        "pinMode({{CHANNEL_B}}, INPUT_PULLUP);",
+        "attachInterrupt(digitalPinToInterrupt({{CHANNEL_A}}), encoder_isr_{{CHANNEL_A}}_{{CHANNEL_B}}, RISING);"
+      ],
+      "helpers": [
+        "long leerCuentaEncoder(volatile long &cuenta) {\n  noInterrupts();\n  long copia = cuenta;\n  interrupts();\n  return copia;\n}"
+      ],
+      "type": "tt_encoder_reset",
+      "message0": "reiniciar contador encoder TT · canal A %1 canal B %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL_A",
+          "options": [
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "CHANNEL_B",
+          "options": [
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        }
+      ],
+      "code": "noInterrupts();\nencoder_cuenta_{{CHANNEL_A}}_{{CHANNEL_B}} = 0;\ninterrupts();",
+      "tooltip": "Pone el contador de pulsos en cero."
+    }
+  ]
+}

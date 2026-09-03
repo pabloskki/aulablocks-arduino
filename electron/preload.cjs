@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const { version: appVersion } = require('../package.json');
 
 contextBridge.exposeInMainWorld('aulaBlocks', {
   saveFile: (options) => ipcRenderer.invoke('save-file', options),
@@ -32,5 +33,17 @@ contextBridge.exposeInMainWorld('aulaBlocks', {
     return () => ipcRenderer.removeListener('request-app-close', listener);
   },
   respondToCloseRequest: (canClose) => ipcRenderer.send('app-close-decision', canClose),
-  platform: process.platform
+  checkSensorUpdates: () => ipcRenderer.invoke('sensor-updates-check'),
+  installSensorUpdates: (entries) => ipcRenderer.invoke('sensor-updates-install', entries),
+  checkForUpdates: () => ipcRenderer.invoke('update-check'),
+  confirmUpdateDownload: () => ipcRenderer.invoke('update-confirm-download'),
+  installUpdateNow: () => ipcRenderer.invoke('update-install-now'),
+  openUpdateReleasesPage: () => ipcRenderer.invoke('update-open-releases-page'),
+  onUpdateStatus: (callback) => {
+    const listener = (_event, status) => callback(status);
+    ipcRenderer.on('update-status', listener);
+    return () => ipcRenderer.removeListener('update-status', listener);
+  },
+  platform: process.platform,
+  appVersion
 });

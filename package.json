@@ -1,6 +1,6 @@
 {
   "name": "aula-blocks-arduino",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "private": true,
   "author": "AulaBlocks",
   "homepage": "https://aulablocks.local",
@@ -17,7 +17,8 @@
     "dist:linux": "vite build && electron-builder --linux deb tar.gz"
   },
   "dependencies": {
-    "blockly": "^12.3.1"
+    "blockly": "^12.3.1",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@vitejs/plugin-basic-ssl": "^2.1.0",
@@ -32,6 +33,11 @@
     "npmRebuild": false,
     "directories": {
       "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "pabloskki",
+      "repo": "aulablocks-arduino"
     },
     "files": [
       "dist/**/*",

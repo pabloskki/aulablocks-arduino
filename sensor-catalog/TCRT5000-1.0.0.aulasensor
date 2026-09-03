@@ -1,0 +1,160 @@
+{
+  "packageFormat": "aulablocks-sensor",
+  "packageVersion": 1,
+  "compatibility": [
+    "Arduino Uno ATmega328P",
+    "Nano ATmega328PB"
+  ],
+  "id": "sensor-linea-tcrt5000",
+  "name": "TCRT5000 · sensor de línea",
+  "categoryName": "TCRT5000",
+  "version": "1.0.0",
+  "icon": "⬛",
+  "colour": "#4f6575",
+  "description": "Detecta líneas y mide reflexión con módulos TCRT5000.",
+  "image": {
+    "mimeType": "image/svg+xml",
+    "encoding": "utf8",
+    "alt": "TCRT5000 para proyectos Arduino",
+    "data": "<svg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'><rect width='440' height='300' rx='28' fill='#f5f7fb'/><rect x='65' y='42' width='310' height='190' rx='24' fill='#4f6575'/><circle cx='140' cy='137' r='48' fill='#fff' opacity='.88'/><circle cx='300' cy='137' r='48' fill='#fff' opacity='.26'/><path d='M178 137h84M220 95v84' stroke='#fff' stroke-width='12' stroke-linecap='round'/><text x='220' y='272' text-anchor='middle' font-family='Arial' font-size='25' font-weight='700' fill='#25324b'>TCRT5000</text><text x='220' y='220' text-anchor='middle' font-family='Arial' font-size='18' font-weight='700' fill='#fff'>LÍNEA</text></svg>"
+  },
+  "wiring": {
+    "interface": "Digital o analógica",
+    "uno": [
+      "VCC → 5V",
+      "GND → GND",
+      "DO → pin digital elegido o AO → entrada analógica elegida"
+    ],
+    "nano328pb": [
+      "VCC → 5V",
+      "GND → GND",
+      "DO → pin digital elegido o AO → entrada analógica elegida"
+    ],
+    "note": "La polaridad de DO cambia entre módulos; el bloque permite elegir si la línea activa entrega LOW o HIGH."
+  },
+  "libraries": [],
+  "bundledLibraries": [],
+  "blocks": [
+    {
+      "type": "tcrt5000_line_digital",
+      "message0": "TCRT5000 detecta línea · DO %1 · activo en %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "ACTIVE",
+          "options": [
+            [
+              "LOW",
+              "LOW"
+            ],
+            [
+              "HIGH",
+              "HIGH"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Boolean",
+      "code": "digitalRead({{PIN}}) == {{ACTIVE}}",
+      "setup": [
+        "pinMode({{PIN}}, INPUT);"
+      ],
+      "tooltip": "Detecta la línea usando la salida digital del módulo."
+    },
+    {
+      "type": "tcrt5000_reflection_analog",
+      "message0": "reflexión TCRT5000 · AO %1 (0 a 1023)",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "A0",
+              "A0"
+            ],
+            [
+              "A1",
+              "A1"
+            ],
+            [
+              "A2",
+              "A2"
+            ],
+            [
+              "A3",
+              "A3"
+            ],
+            [
+              "A4",
+              "A4"
+            ],
+            [
+              "A5",
+              "A5"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Number",
+      "code": "analogRead({{PIN}})",
+      "tooltip": "Entrega la lectura analógica de reflexión."
+    }
+  ]
+}

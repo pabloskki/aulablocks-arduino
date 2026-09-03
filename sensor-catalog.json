@@ -1,0 +1,71 @@
+{
+  "updated": "2026-09-03",
+  "sensors": [
+    {
+      "id": "actuador-servo-sg90",
+      "name": "Servo SG90 / MG90S",
+      "version": "1.0.0",
+      "file": "sensor-catalog/Servo-SG90-1.0.0.aulasensor"
+    },
+    {
+      "id": "encoder-motor-tt-hall-12ppr",
+      "name": "Motor TT Hall · encoder 12 PPR",
+      "version": "1.0.0",
+      "file": "sensor-catalog/Encoder-TT-Hall-12PPR-1.0.0.aulasensor"
+    },
+    {
+      "id": "motor-controlador-tb6612fng",
+      "name": "TB6612FNG · controlador de motores",
+      "version": "1.0.0",
+      "file": "sensor-catalog/TB6612FNG-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-linea-tcrt5000",
+      "name": "TCRT5000 · sensor de línea",
+      "version": "1.0.0",
+      "file": "sensor-catalog/TCRT5000-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-luz-fotoresistencia-ldr",
+      "name": "Fotoresistencia LDR · entrada analógica",
+      "version": "1.0.0",
+      "file": "sensor-catalog/Fotoresistencia-LDR-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-movimiento-hc-sr501",
+      "name": "HC-SR501 · sensor PIR",
+      "version": "1.0.0",
+      "file": "sensor-catalog/HC-SR501-PIR-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-nfc-pn532-i2c",
+      "name": "Lector NFC PN532 · I2C · Adafruit",
+      "version": "1.7.2",
+      "file": "sensor-catalog/PN532-I2C-1.7.2.aulasensor"
+    },
+    {
+      "id": "sensor-obstaculos-fc51-flying-fish",
+      "name": "FC-51 / MH-B Flying Fish · obstáculos",
+      "version": "1.0.0",
+      "file": "sensor-catalog/FC-51-Flying-Fish-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-temperatura-dht11",
+      "name": "DHT11 · temperatura y humedad",
+      "version": "1.0.0",
+      "file": "sensor-catalog/DHT11-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-temperatura-dht22",
+      "name": "DHT22 · temperatura y humedad",
+      "version": "1.0.0",
+      "file": "sensor-catalog/DHT22-1.0.0.aulasensor"
+    },
+    {
+      "id": "sensor-ultrasonico-hc-sr04",
+      "name": "Sensor ultrasónico HC-SR04",
+      "version": "1.4.0",
+      "file": "sensor-catalog/HC-SR04-1.4.0.aulasensor"
+    }
+  ]
+}

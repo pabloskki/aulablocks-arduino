@@ -3,6 +3,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createArduinoService } = require('./arduino-service.cjs');
 const { installCh340Driver } = require('./driver-service.cjs');
+const { createUpdaterService } = require('./updater-service.cjs');
+const { createSensorUpdatesService } = require('./sensor-updates-service.cjs');
 
 function arduinoRuntimeRoot() {
   if (app.isPackaged) {
@@ -65,6 +67,26 @@ let mainWindow = null;
 let allowWindowClose = false;
 let closeTimeoutId = null;
 
+function sensorUpdatesService() {
+  if (sensorUpdatesService.instance) return sensorUpdatesService.instance;
+  sensorUpdatesService.instance = createSensorUpdatesService({
+    listInstalledSensors: () => arduinoService().listSensorCatalog(),
+    installSensorPackage: (sensorPackage) => arduinoService().installSensorPackage(sensorPackage)
+  });
+  return sensorUpdatesService.instance;
+}
+
+function updaterService() {
+  if (updaterService.instance) return updaterService.instance;
+  updaterService.instance = createUpdaterService({
+    platform: process.platform,
+    sendToRenderer: (channel, payload) => {
+      if (mainWindow && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(channel, payload);
+    }
+  });
+  return updaterService.instance;
+}
+
 function appIconPath() {
   if (app.isPackaged) return undefined;
   return path.join(__dirname, '..', 'build', 'icon.ico');
@@ -88,7 +110,10 @@ function createWindow() {
 
   win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
-  win.once('ready-to-show', () => win.show());
+  win.once('ready-to-show', () => {
+    win.show();
+    if (app.isPackaged) setTimeout(() => updaterService().checkForUpdates(), 4000);
+  });
   win.on('close', (event) => {
     if (allowWindowClose) return;
     event.preventDefault();
@@ -144,6 +169,20 @@ ipcMain.handle('serial-monitor-start', async (event, payload) => arduinoService(
 ));
 ipcMain.handle('serial-monitor-stop', async () => arduinoService().stopSerialMonitor());
 ipcMain.handle('serial-monitor-send', async (_event, value) => arduinoService().sendSerialMonitor(value));
+
+ipcMain.handle('sensor-updates-check', async () => {
+  try {
+    return { ok: true, updates: await sensorUpdatesService().checkForUpdates() };
+  } catch (error) {
+    return { ok: false, message: error.message || 'No pudimos revisar actualizaciones de sensores.' };
+  }
+});
+ipcMain.handle('sensor-updates-install', async (_event, entries) => sensorUpdatesService().installUpdates(entries));
+
+ipcMain.handle('update-check', async () => updaterService().checkForUpdates());
+ipcMain.handle('update-confirm-download', async () => updaterService().confirmDownload());
+ipcMain.handle('update-install-now', async () => updaterService().installNow());
+ipcMain.handle('update-open-releases-page', async () => updaterService().openReleasesPage());
 
 ipcMain.on('app-close-decision', (_event, canClose) => {
   clearTimeout(closeTimeoutId);

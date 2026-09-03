@@ -1,0 +1,283 @@
+{
+  "packageFormat": "aulablocks-sensor",
+  "packageVersion": 1,
+  "id": "sensor-luz-fotoresistencia-ldr",
+  "name": "Fotoresistencia LDR · entrada analógica",
+  "version": "1.0.0",
+  "icon": "☀️",
+  "image": {
+    "mimeType": "image/svg+xml",
+    "encoding": "utf8",
+    "alt": "Módulo con fotoresistencia LDR circular",
+    "data": "<svg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'><rect width='440' height='300' rx='28' fill='#fff7df'/><rect x='112' y='38' width='216' height='190' rx='22' fill='#49328c'/><circle cx='220' cy='120' r='66' fill='#d99645'/><path d='M168 124c19-42 31 42 53 0s35 40 52-2' fill='none' stroke='#874313' stroke-width='11'/><path d='M200 185v73M242 185v73' stroke='#d5aa45' stroke-width='14'/><text x='220' y='286' text-anchor='middle' font-family='Arial' font-size='24' font-weight='700' fill='#6f521c'>Fotoresistencia LDR</text></svg>"
+  },
+  "colour": "#d49316",
+  "description": "Mide la intensidad de luz en A0–A5 y permite controlar una salida según un umbral.",
+  "compatibility": [
+    "Arduino Uno ATmega328P",
+    "Nano ATmega328PB"
+  ],
+  "wiring": {
+    "interface": "Analógica",
+    "uno": [
+      "5V → una pata de la LDR",
+      "La otra pata de la LDR → A0",
+      "Resistencia de 10 kΩ entre A0 y GND"
+    ],
+    "nano328pb": [
+      "5V → una pata de la LDR",
+      "La otra pata de la LDR → A0",
+      "Resistencia de 10 kΩ entre A0 y GND"
+    ],
+    "note": "Con esta conexión, un valor mayor significa más luz. Puedes elegir cualquier entrada A0–A5 en el bloque."
+  },
+  "libraries": [],
+  "blocks": [
+    {
+      "type": "ldr_light_raw",
+      "message0": "intensidad de luz LDR en %1 (0 a 1023)",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "A0",
+              "A0"
+            ],
+            [
+              "A1",
+              "A1"
+            ],
+            [
+              "A2",
+              "A2"
+            ],
+            [
+              "A3",
+              "A3"
+            ],
+            [
+              "A4",
+              "A4"
+            ],
+            [
+              "A5",
+              "A5"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Number",
+      "code": "analogRead({{PIN}})",
+      "tooltip": "Entrega la lectura analógica sin modificar: 0 es mínima y 1023 es máxima."
+    },
+    {
+      "type": "ldr_light_percent",
+      "message0": "porcentaje de luz LDR en %1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "A0",
+              "A0"
+            ],
+            [
+              "A1",
+              "A1"
+            ],
+            [
+              "A2",
+              "A2"
+            ],
+            [
+              "A3",
+              "A3"
+            ],
+            [
+              "A4",
+              "A4"
+            ],
+            [
+              "A5",
+              "A5"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Number",
+      "code": "map(analogRead({{PIN}}), 0, 1023, 0, 100)",
+      "tooltip": "Convierte la lectura analógica en un porcentaje aproximado de 0 a 100."
+    },
+    {
+      "type": "ldr_is_dark",
+      "message0": "hay oscuridad en %1 si el valor es menor que %2",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "A0",
+              "A0"
+            ],
+            [
+              "A1",
+              "A1"
+            ],
+            [
+              "A2",
+              "A2"
+            ],
+            [
+              "A3",
+              "A3"
+            ],
+            [
+              "A4",
+              "A4"
+            ],
+            [
+              "A5",
+              "A5"
+            ]
+          ]
+        },
+        {
+          "type": "field_number",
+          "name": "THRESHOLD",
+          "value": 450,
+          "min": 0,
+          "max": 1023,
+          "precision": 1
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Boolean",
+      "code": "analogRead({{PIN}}) < {{THRESHOLD}}",
+      "tooltip": "Permite usar un bloque “si” para reaccionar cuando hay poca luz."
+    },
+    {
+      "type": "ldr_control_output",
+      "message0": "%1 salida %2 usando LDR %3 · umbral %4",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "MODE",
+          "options": [
+            [
+              "encender con oscuridad",
+              "<"
+            ],
+            [
+              "encender con luz",
+              ">"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "OUTPUT",
+          "options": [
+            [
+              "13",
+              "13"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "A0",
+              "A0"
+            ],
+            [
+              "A1",
+              "A1"
+            ],
+            [
+              "A2",
+              "A2"
+            ],
+            [
+              "A3",
+              "A3"
+            ],
+            [
+              "A4",
+              "A4"
+            ],
+            [
+              "A5",
+              "A5"
+            ]
+          ]
+        },
+        {
+          "type": "field_number",
+          "name": "THRESHOLD",
+          "value": 450,
+          "min": 0,
+          "max": 1023,
+          "precision": 1
+        }
+      ],
+      "code": "digitalWrite({{OUTPUT}}, analogRead({{PIN}}) {{MODE}} {{THRESHOLD}} ? HIGH : LOW);",
+      "setup": [
+        "pinMode({{OUTPUT}}, OUTPUT);"
+      ],
+      "tooltip": "Enciende o apaga automáticamente un LED, relé u otra salida según la luz."
+    }
+  ],
+  "bundledLibraries": []
+}

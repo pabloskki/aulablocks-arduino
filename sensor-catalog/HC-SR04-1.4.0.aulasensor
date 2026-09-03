@@ -1,0 +1,310 @@
+{
+  "packageFormat": "aulablocks-sensor",
+  "packageVersion": 1,
+  "id": "sensor-ultrasonico-hc-sr04",
+  "name": "Sensor ultrasónico HC-SR04",
+  "version": "1.4.0",
+  "icon": "📏",
+  "image": {
+    "mimeType": "image/svg+xml",
+    "encoding": "utf8",
+    "alt": "Módulo ultrasónico HC-SR04 azul con dos transductores circulares",
+    "data": "<svg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'><rect width='440' height='300' rx='28' fill='#f3f0ff'/><rect x='48' y='46' width='344' height='182' rx='18' fill='#1767a0'/><circle cx='145' cy='133' r='62' fill='#d8dde2'/><circle cx='295' cy='133' r='62' fill='#d8dde2'/><circle cx='145' cy='133' r='43' fill='#26323a'/><circle cx='295' cy='133' r='43' fill='#26323a'/><g fill='#d5aa45'><rect x='153' y='225' width='14' height='38' rx='3'/><rect x='193' y='225' width='14' height='38' rx='3'/><rect x='233' y='225' width='14' height='38' rx='3'/><rect x='273' y='225' width='14' height='38' rx='3'/></g><text x='220' y='286' text-anchor='middle' font-family='Arial' font-size='24' font-weight='700' fill='#433875'>HC-SR04</text></svg>"
+  },
+  "colour": "#2477b3",
+  "description": "Mide distancias y detecta objetos utilizando el sensor ultrasónico HC-SR04.",
+  "compatibility": [
+    "Arduino Uno ATmega328P",
+    "Nano ATmega328PB"
+  ],
+  "wiring": {
+    "interface": "Digital",
+    "uno": [
+      "VCC → 5V",
+      "GND → GND",
+      "TRIG → pin digital elegido",
+      "ECHO → pin digital elegido"
+    ],
+    "nano328pb": [
+      "VCC → 5V",
+      "GND → GND",
+      "TRIG → pin digital elegido",
+      "ECHO → pin digital elegido"
+    ],
+    "note": "TRIG y ECHO deben utilizar pines digitales diferentes."
+  },
+  "libraries": [],
+  "codeResources": {
+    "measure": {
+      "setup": [
+        "pinMode({{TRIG}}, OUTPUT);",
+        "pinMode({{ECHO}}, INPUT);",
+        "digitalWrite({{TRIG}}, LOW);"
+      ],
+      "helpers": [
+        "float medirHCSR04(int pinTrigger, int pinEcho) {\n  digitalWrite(pinTrigger, LOW);\n  delayMicroseconds(2);\n  digitalWrite(pinTrigger, HIGH);\n  delayMicroseconds(10);\n  digitalWrite(pinTrigger, LOW);\n  long duracion = pulseIn(pinEcho, HIGH);\n  float distancia = (duracion / 2.0f) / 29.2f;\n  delay(200);\n  return distancia;\n}"
+      ]
+    },
+    "compare": {
+      "requires": [
+        "measure"
+      ],
+      "helpers": [
+        "bool hcsr04MasCercaQue(int trig, int echo, float limite) {\n  float distancia = medirHCSR04(trig, echo);\n  return distancia > 0 && distancia < limite;\n}"
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "type": "hcsr04_distance_cm",
+      "requires": [
+        "measure"
+      ],
+      "message0": "distancia HC-SR04 en cm · TRIG %1 ECHO %2",
+      "output": "Number",
+      "code": "medirHCSR04({{TRIG}}, {{ECHO}})",
+      "tooltip": "Entrega la distancia en centímetros usando los pines TRIG y ECHO elegidos en el bloque.",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "TRIG",
+          "options": [
+            [
+              "9",
+              "9"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "ECHO",
+          "options": [
+            [
+              "8",
+              "8"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression"
+    },
+    {
+      "type": "hcsr04_object_closer_than",
+      "requires": [
+        "compare"
+      ],
+      "message0": "HC-SR04 detecta objeto a menos de %1 cm · TRIG %2 ECHO %3",
+      "args0": [
+        {
+          "type": "field_number",
+          "name": "DISTANCE",
+          "value": 20,
+          "min": 2,
+          "max": 400,
+          "precision": 1
+        },
+        {
+          "type": "field_dropdown",
+          "name": "TRIG",
+          "options": [
+            [
+              "9",
+              "9"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "ECHO",
+          "options": [
+            [
+              "8",
+              "8"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        }
+      ],
+      "output": "Boolean",
+      "code": "hcsr04MasCercaQue({{TRIG}}, {{ECHO}}, {{DISTANCE}})",
+      "tooltip": "Es verdadero cuando el sensor responde y hay un objeto más cerca que la distancia indicada.",
+      "codeKind": "expression"
+    }
+  ],
+  "bundledLibraries": []
+}

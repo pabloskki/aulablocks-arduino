@@ -1,0 +1,105 @@
+{
+  "packageFormat": "aulablocks-sensor",
+  "packageVersion": 1,
+  "compatibility": [
+    "Arduino Uno ATmega328P",
+    "Nano ATmega328PB"
+  ],
+  "id": "sensor-movimiento-hc-sr501",
+  "name": "HC-SR501 · sensor PIR",
+  "categoryName": "HC-SR501",
+  "version": "1.0.0",
+  "icon": "🚶",
+  "colour": "#7757b7",
+  "description": "Detecta movimiento de personas mediante un módulo PIR HC-SR501.",
+  "image": {
+    "mimeType": "image/svg+xml",
+    "encoding": "utf8",
+    "alt": "HC-SR501 para proyectos Arduino",
+    "data": "<svg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'><rect width='440' height='300' rx='28' fill='#f5f7fb'/><rect x='65' y='42' width='310' height='190' rx='24' fill='#7757b7'/><circle cx='140' cy='137' r='48' fill='#fff' opacity='.88'/><circle cx='300' cy='137' r='48' fill='#fff' opacity='.26'/><path d='M178 137h84M220 95v84' stroke='#fff' stroke-width='12' stroke-linecap='round'/><text x='220' y='272' text-anchor='middle' font-family='Arial' font-size='25' font-weight='700' fill='#25324b'>HC-SR501</text><text x='220' y='220' text-anchor='middle' font-family='Arial' font-size='18' font-weight='700' fill='#fff'>PIR</text></svg>"
+  },
+  "wiring": {
+    "interface": "Digital",
+    "uno": [
+      "VCC → 5V",
+      "GND → GND",
+      "OUT → pin digital elegido"
+    ],
+    "nano328pb": [
+      "VCC → 5V",
+      "GND → GND",
+      "OUT → pin digital elegido"
+    ]
+  },
+  "libraries": [],
+  "bundledLibraries": [],
+  "blocks": [
+    {
+      "type": "hcsr501_motion",
+      "message0": "HC-SR501 detecta movimiento · OUT %1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        }
+      ],
+      "codeKind": "expression",
+      "output": "Boolean",
+      "code": "digitalRead({{PIN}}) == HIGH",
+      "setup": [
+        "pinMode({{PIN}}, INPUT);"
+      ],
+      "tooltip": "Es verdadero mientras la salida OUT del PIR está activa."
+    }
+  ]
+}

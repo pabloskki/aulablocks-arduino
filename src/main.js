@@ -141,6 +141,10 @@ app.innerHTML = `
         <button class="modal-close" id="sensor-library-close" aria-label="Cerrar">×</button>
         <div class="library-dialog-heading"><span>📚</span><div><span class="eyebrow">INSTALADOS EN ESTE PC</span><h2 id="sensor-library-title">Biblioteca de sensores</h2></div></div>
         <p>Elige solamente los sensores que utilizarás en el proyecto actual.</p>
+        <div class="sensor-updates-row">
+          <button class="button ghost" id="check-sensor-updates">🔄 Buscar actualizaciones de sensores</button>
+          <small id="sensor-updates-status"></small>
+        </div>
         <div id="sensor-catalog-list" class="sensor-catalog-list"></div>
       </div>
     </div>
@@ -262,6 +266,7 @@ document.querySelector('#check-project').addEventListener('click', checkProject)
 document.querySelector('#open-sensor-library').addEventListener('click', openSensorLibrary);
 document.querySelector('#sensor-library-close').addEventListener('click', closeSensorLibrary);
 document.querySelector('#sensor-library-modal').addEventListener('click', (event) => { if (event.target.id === 'sensor-library-modal') closeSensorLibrary(); });
+document.querySelector('#check-sensor-updates').addEventListener('click', checkSensorUpdates);
 document.querySelector('#variable-form').addEventListener('submit', createVariable);
 document.querySelector('#variable-close').addEventListener('click', closeVariableModal);
 document.querySelector('#variable-modal').addEventListener('click', (event) => { if (event.target.id === 'variable-modal') closeVariableModal(); });
@@ -316,8 +321,36 @@ if (window.aulaBlocks?.onRequestClose) {
 if (window.aulaBlocks?.installCh340Driver && window.aulaBlocks?.platform === 'win32') {
   document.querySelector('#install-usb-driver').hidden = false;
 }
+if (window.aulaBlocks?.onUpdateStatus) window.aulaBlocks.onUpdateStatus(handleUpdateStatus);
 updateBoardControls();
 loadSensorCatalog();
+
+let updateDownloadAsked = false;
+
+async function handleUpdateStatus(status) {
+  if (status.state === 'available' && !updateDownloadAsked) {
+    updateDownloadAsked = true;
+    if (status.canAutoInstall) {
+      const proceed = await askConfirmation(
+        'Hay una actualización disponible',
+        `AulaBlocks ${status.version} está disponible (tienes ${window.aulaBlocks.appVersion || 'esta versión'}). Se descarga en segundo plano y se instala la próxima vez que abras el programa. ¿Descargarla ahora?`,
+        'Descargar'
+      );
+      if (proceed) window.aulaBlocks.confirmUpdateDownload();
+    } else {
+      const proceed = await askConfirmation(
+        'Hay una actualización disponible',
+        `AulaBlocks ${status.version} está disponible. En Linux, la actualización no se instala sola: hay que descargarla desde la página del proyecto. ¿Abrir esa página ahora?`,
+        'Abrir página'
+      );
+      if (proceed) window.aulaBlocks.openUpdateReleasesPage();
+    }
+  } else if (status.state === 'ready') {
+    showToast('Actualización descargada. Se instalará la próxima vez que abras AulaBlocks.');
+  } else if (status.state === 'error') {
+    console.warn('AulaBlocks: no se pudo revisar actualizaciones —', status.message);
+  }
+}
 
 async function installUsbDriver() {
   const button = document.querySelector('#install-usb-driver');
@@ -935,6 +968,49 @@ async function loadSensorCatalog() {
     console.warn(error);
   }
   renderSensorCatalog();
+}
+
+async function checkSensorUpdates() {
+  const button = document.querySelector('#check-sensor-updates');
+  const status = document.querySelector('#sensor-updates-status');
+  if (!window.aulaBlocks?.checkSensorUpdates) {
+    status.textContent = 'Esta función solo está disponible en la aplicación de escritorio.';
+    return;
+  }
+  button.disabled = true;
+  status.textContent = 'Buscando actualizaciones…';
+  try {
+    const result = await window.aulaBlocks.checkSensorUpdates();
+    if (!result.ok) {
+      status.textContent = result.message || 'No pudimos revisar actualizaciones. Revisa tu conexión a internet.';
+      return;
+    }
+    if (!result.updates.length) {
+      status.textContent = 'Todos los sensores están al día.';
+      return;
+    }
+    const lista = result.updates.map((item) => `${item.name}: ${item.localVersion ? `${item.localVersion} → ${item.remoteVersion}` : `nuevo, ${item.remoteVersion}`}`).join('\n');
+    const proceed = await askConfirmation(
+      `${result.updates.length} sensor${result.updates.length === 1 ? '' : 'es'} con actualización`,
+      `Se instalarán estas versiones:\n\n${lista}`,
+      'Actualizar ahora'
+    );
+    if (!proceed) {
+      status.textContent = 'Actualización cancelada.';
+      return;
+    }
+    status.textContent = 'Instalando…';
+    const installResults = await window.aulaBlocks.installSensorUpdates(result.updates);
+    const failed = installResults.filter((item) => !item.ok);
+    await loadSensorCatalog();
+    status.textContent = failed.length
+      ? `Se instalaron ${installResults.length - failed.length} de ${installResults.length}. Fallaron: ${failed.map((f) => f.name).join(', ')}.`
+      : `Listo: se actualizaron ${installResults.length} sensor${installResults.length === 1 ? '' : 'es'}.`;
+  } catch (error) {
+    status.textContent = error.message || 'No pudimos revisar actualizaciones.';
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function openSensorLibrary() {

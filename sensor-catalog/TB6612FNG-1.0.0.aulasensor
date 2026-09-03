@@ -1,0 +1,513 @@
+{
+  "packageFormat": "aulablocks-sensor",
+  "packageVersion": 1,
+  "compatibility": [
+    "Arduino Uno ATmega328P",
+    "Nano ATmega328PB"
+  ],
+  "id": "motor-controlador-tb6612fng",
+  "name": "TB6612FNG · controlador de motores",
+  "categoryName": "TB6612FNG",
+  "version": "1.0.0",
+  "icon": "⚙️",
+  "colour": "#287ba7",
+  "description": "Controla uno o dos motores DC con velocidad, sentido, parada y freno.",
+  "image": {
+    "mimeType": "image/svg+xml",
+    "encoding": "utf8",
+    "alt": "TB6612FNG para proyectos Arduino",
+    "data": "<svg xmlns='http://www.w3.org/2000/svg' width='440' height='300' viewBox='0 0 440 300'><rect width='440' height='300' rx='28' fill='#f5f7fb'/><rect x='65' y='42' width='310' height='190' rx='24' fill='#287ba7'/><circle cx='140' cy='137' r='48' fill='#fff' opacity='.88'/><circle cx='300' cy='137' r='48' fill='#fff' opacity='.26'/><path d='M178 137h84M220 95v84' stroke='#fff' stroke-width='12' stroke-linecap='round'/><text x='220' y='272' text-anchor='middle' font-family='Arial' font-size='25' font-weight='700' fill='#25324b'>TB6612FNG</text><text x='220' y='220' text-anchor='middle' font-family='Arial' font-size='18' font-weight='700' fill='#fff'>MOTOR A + B</text></svg>"
+  },
+  "wiring": {
+    "interface": "Puente H doble",
+    "uno": [
+      "VCC → 5V Arduino",
+      "GND → GND común",
+      "VM → fuente del motor",
+      "STBY → pin digital",
+      "AIN1/AIN2/PWMA → pines elegidos",
+      "A01/A02 → motor A",
+      "BIN1/BIN2/PWMB → pines elegidos",
+      "B01/B02 → motor B"
+    ],
+    "nano328pb": [
+      "VCC → 5V Arduino",
+      "GND → GND común",
+      "VM → fuente del motor",
+      "STBY → pin digital",
+      "AIN1/AIN2/PWMA → pines elegidos",
+      "A01/A02 → motor A",
+      "BIN1/BIN2/PWMB → pines elegidos",
+      "B01/B02 → motor B"
+    ],
+    "note": "No conectes el motor directamente al Arduino. Comprueba que la corriente de bloqueo del motor sea segura para el controlador. Los PWM ofrecidos evitan D9/D10 para reducir conflictos al usar Servo."
+  },
+  "libraries": [],
+  "bundledLibraries": [],
+  "blocks": [
+    {
+      "type": "tb6612_motor_a",
+      "message0": "TB6612 motor A · IN1 %1 IN2 %2 PWM %3 STBY %4 · %5 velocidad %6",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "IN1",
+          "options": [
+            [
+              "7",
+              "7"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "IN2",
+          "options": [
+            [
+              "8",
+              "8"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "PWM",
+          "options": [
+            [
+              "5",
+              "5"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "11",
+              "11"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "STBY",
+          "options": [
+            [
+              "12",
+              "12"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "DIRECTION",
+          "options": [
+            [
+              "avanzar",
+              "1"
+            ],
+            [
+              "retroceder",
+              "-1"
+            ],
+            [
+              "detener libre",
+              "0"
+            ],
+            [
+              "frenar",
+              "2"
+            ]
+          ]
+        },
+        {
+          "type": "field_number",
+          "name": "SPEED",
+          "value": 150,
+          "min": 0,
+          "max": 255,
+          "precision": 1
+        }
+      ],
+      "code": "controlarTB6612({{IN1}}, {{IN2}}, {{PWM}}, {{STBY}}, {{DIRECTION}}, {{SPEED}});",
+      "setup": [
+        "pinMode({{IN1}}, OUTPUT);",
+        "pinMode({{IN2}}, OUTPUT);",
+        "pinMode({{PWM}}, OUTPUT);",
+        "pinMode({{STBY}}, OUTPUT);",
+        "digitalWrite({{STBY}}, HIGH);"
+      ],
+      "helpers": [
+        "void controlarTB6612(int in1, int in2, int pwm, int stby, int sentido, int velocidad) {\n  velocidad = constrain(velocidad, 0, 255);\n  digitalWrite(stby, HIGH);\n  if (sentido == 0) {\n    digitalWrite(in1, LOW);\n    digitalWrite(in2, LOW);\n    analogWrite(pwm, 0);\n    return;\n  }\n  if (sentido == 2) {\n    digitalWrite(in1, HIGH);\n    digitalWrite(in2, HIGH);\n    analogWrite(pwm, 255);\n    return;\n  }\n  digitalWrite(in1, sentido > 0 ? HIGH : LOW);\n  digitalWrite(in2, sentido > 0 ? LOW : HIGH);\n  analogWrite(pwm, velocidad);\n}"
+      ],
+      "tooltip": "Controla el canal A del TB6612FNG con velocidad de 0 a 255."
+    },
+    {
+      "type": "tb6612_motor_b",
+      "message0": "TB6612 motor B · IN1 %1 IN2 %2 PWM %3 STBY %4 · %5 velocidad %6",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "IN1",
+          "options": [
+            [
+              "9",
+              "9"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "IN2",
+          "options": [
+            [
+              "10",
+              "10"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "12",
+              "12"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "PWM",
+          "options": [
+            [
+              "6",
+              "6"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "11",
+              "11"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "STBY",
+          "options": [
+            [
+              "12",
+              "12"
+            ],
+            [
+              "2",
+              "2"
+            ],
+            [
+              "3",
+              "3"
+            ],
+            [
+              "4",
+              "4"
+            ],
+            [
+              "5",
+              "5"
+            ],
+            [
+              "6",
+              "6"
+            ],
+            [
+              "7",
+              "7"
+            ],
+            [
+              "8",
+              "8"
+            ],
+            [
+              "9",
+              "9"
+            ],
+            [
+              "10",
+              "10"
+            ],
+            [
+              "11",
+              "11"
+            ],
+            [
+              "13",
+              "13"
+            ]
+          ]
+        },
+        {
+          "type": "field_dropdown",
+          "name": "DIRECTION",
+          "options": [
+            [
+              "avanzar",
+              "1"
+            ],
+            [
+              "retroceder",
+              "-1"
+            ],
+            [
+              "detener libre",
+              "0"
+            ],
+            [
+              "frenar",
+              "2"
+            ]
+          ]
+        },
+        {
+          "type": "field_number",
+          "name": "SPEED",
+          "value": 150,
+          "min": 0,
+          "max": 255,
+          "precision": 1
+        }
+      ],
+      "code": "controlarTB6612({{IN1}}, {{IN2}}, {{PWM}}, {{STBY}}, {{DIRECTION}}, {{SPEED}});",
+      "setup": [
+        "pinMode({{IN1}}, OUTPUT);",
+        "pinMode({{IN2}}, OUTPUT);",
+        "pinMode({{PWM}}, OUTPUT);",
+        "pinMode({{STBY}}, OUTPUT);",
+        "digitalWrite({{STBY}}, HIGH);"
+      ],
+      "helpers": [
+        "void controlarTB6612(int in1, int in2, int pwm, int stby, int sentido, int velocidad) {\n  velocidad = constrain(velocidad, 0, 255);\n  digitalWrite(stby, HIGH);\n  if (sentido == 0) {\n    digitalWrite(in1, LOW);\n    digitalWrite(in2, LOW);\n    analogWrite(pwm, 0);\n    return;\n  }\n  if (sentido == 2) {\n    digitalWrite(in1, HIGH);\n    digitalWrite(in2, HIGH);\n    analogWrite(pwm, 255);\n    return;\n  }\n  digitalWrite(in1, sentido > 0 ? HIGH : LOW);\n  digitalWrite(in2, sentido > 0 ? LOW : HIGH);\n  analogWrite(pwm, velocidad);\n}"
+      ],
+      "tooltip": "Controla el canal B del TB6612FNG con velocidad de 0 a 255."
+    }
+  ]
+}
