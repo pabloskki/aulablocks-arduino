@@ -40,8 +40,8 @@
     {
       "id": "sensor-nfc-pn532-i2c",
       "name": "Lector NFC PN532 · I2C · Adafruit",
-      "version": "1.7.2",
-      "file": "sensor-catalog/PN532-I2C-1.7.2.aulasensor"
+      "version": "1.7.3",
+      "file": "sensor-catalog/PN532-I2C-1.7.3.aulasensor"
     },
     {
       "id": "sensor-obstaculos-fc51-flying-fish",
