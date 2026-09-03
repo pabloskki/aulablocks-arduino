@@ -3,7 +3,7 @@
   "packageVersion": 1,
   "id": "sensor-nfc-pn532-i2c",
   "name": "Lector NFC PN532 · I2C · Adafruit",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "icon": "📶",
   "image": {
     "mimeType": "image/svg+xml",
@@ -33,7 +33,7 @@
       "SCL → A5",
       "RSTPDN → D9"
     ],
-    "note": "En el módulo rojo probado, I2C funciona con ambos selectores en 0. Algunos clones imprimen una tabla diferente: conserva la posición con la que el ejemplo de firmware responde. No conectes IRQ. Conecta D9 específicamente a RSTPDN, no a un pin distinto llamado RSTO: en algunos módulos RSTO es una salida del propio módulo (indica su estado), y conectarla a D9 haría que el módulo y el Arduino intenten manejar la misma línea a la vez. RSTPDN es opcional pero recomendado: sin ese cable el sensor funciona igual, pero si el módulo se queda sin responder solo se recupera desconectando la placa; con el cable, el programa lo reinicia solo."
+    "note": "En el módulo rojo probado, I2C funciona con ambos selectores en 0. Algunos clones imprimen una tabla diferente: conserva la posición con la que el ejemplo de firmware responde. No conectes IRQ. Conecta RSTPDN específicamente, no un pin distinto llamado RSTO: en algunos módulos RSTO es una salida del propio módulo (indica su estado), y conectarla al Arduino haría que el módulo y el Arduino intenten manejar la misma línea a la vez. RSTPDN es opcional pero recomendado: sin ese cable el sensor funciona igual, pero si el módulo se queda sin responder solo se recupera desconectando la placa; con el cable, el programa lo reinicia solo. Por defecto usa el pin D9; si prefieres otro pin, usa el bloque “sensor NFC · reiniciarlo con el pin ___” en “al encender Arduino” y conecta RSTPDN a ese pin en vez de D9."
   },
   "libraries": [
     {
@@ -52,11 +52,12 @@
         "#include <Adafruit_PN532.h>"
       ],
       "globals": [
-        "Adafruit_PN532 pn532_i2c(0xFF, 9);",
-        "bool pn532_i2c_ok = false;"
+        "Adafruit_PN532 pn532_i2c(0xFF, 0xFF);",
+        "bool pn532_i2c_ok = false;",
+        "int pn532_pin_reset = 9;"
       ],
       "helpers": [
-        "void pn532Reiniciar() {\n  pn532_i2c.reset();\n  delay(10);\n  uint32_t version = pn532_i2c.getFirmwareVersion();\n  pn532_i2c_ok = (version != 0);\n  if (pn532_i2c_ok) pn532_i2c.SAMConfig();\n}"
+        "void pn532Reiniciar() {\n  pinMode(pn532_pin_reset, OUTPUT);\n  digitalWrite(pn532_pin_reset, LOW);\n  delay(1);\n  digitalWrite(pn532_pin_reset, HIGH);\n  delay(2);\n  uint32_t version = pn532_i2c.getFirmwareVersion();\n  pn532_i2c_ok = (version != 0);\n  if (pn532_i2c_ok) pn532_i2c.SAMConfig();\n}"
       ],
       "setup": [
         "delay(1000);\n  Wire.begin();\n  pn532_i2c.begin();\n  pn532Reiniciar();"
@@ -179,6 +180,25 @@
       "tooltip": "Reconoce automáticamente NTAG213, NTAG215, NTAG216 o Ultralight y lee su primer texto NDEF.",
       "args0": [],
       "codeKind": "expression"
+    },
+    {
+      "type": "pn532_adafruit_reset_pin",
+      "requires": [
+        "core"
+      ],
+      "message0": "sensor NFC · reiniciarlo con el pin %1",
+      "args0": [
+        {
+          "type": "field_dropdown",
+          "name": "PIN",
+          "options": [
+            ["9", "9"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"], ["6", "6"],
+            ["7", "7"], ["8", "8"], ["10", "10"], ["11", "11"], ["12", "12"], ["13", "13"]
+          ]
+        }
+      ],
+      "code": "pn532_pin_reset = {{PIN}};",
+      "tooltip": "Cambia el pin conectado a RSTPDN (por defecto pin 9). Colócalo en “al encender Arduino”, antes de otros bloques del sensor NFC. Si no lo usas, se usa el pin 9."
     }
   ],
   "bundledLibraries": [
