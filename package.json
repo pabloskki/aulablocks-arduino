@@ -1,0 +1,130 @@
+{
+  "name": "aula-blocks-arduino",
+  "version": "0.9.4",
+  "private": true,
+  "author": "AulaBlocks",
+  "homepage": "https://aulablocks.local",
+  "description": "Programacion visual por bloques para proyectos educativos con Arduino",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "desktop": "electron .",
+    "dist:win": "vite build && electron-builder --win nsis",
+    "dist:portable": "vite build && electron-builder --win portable --config.win.artifactName=AulaBlocks-Arduino-Portable-${version}-${arch}.${ext}",
+    "prepare:linux-runtime": "node tools/prepare-linux-arduino-runtime.mjs",
+    "dist:linux": "vite build && electron-builder --linux deb tar.gz"
+  },
+  "dependencies": {
+    "blockly": "^12.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12",
+    "vite": "^7.1.2"
+  },
+  "build": {
+    "appId": "cl.aulablocks.arduino",
+    "productName": "AulaBlocks Arduino",
+    "asar": true,
+    "npmRebuild": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "AulaBlocks-Arduino-Instalador-${version}-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "tools/arduino-cli/bin",
+          "to": "arduino-runtime/bin"
+        },
+        {
+          "from": "tools/arduino-cli/data",
+          "to": "arduino-runtime/data"
+        },
+        {
+          "from": "tools/arduino-cli/user",
+          "to": "arduino-runtime/user"
+        },
+        {
+          "from": "drivers/ch340-windows",
+          "to": "drivers/ch340-windows"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "tar.gz"
+      ],
+      "icon": "build/icons",
+      "category": "Education",
+      "executableName": "aulablocks-arduino",
+      "maintainer": "AulaBlocks",
+      "artifactName": "AulaBlocks-Arduino-${version}-Linux-Mint-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "tools/arduino-cli-linux/bin",
+          "to": "arduino-runtime/bin"
+        },
+        {
+          "from": "tools/arduino-cli-linux/data",
+          "to": "arduino-runtime/data"
+        },
+        {
+          "from": "tools/arduino-cli-linux/user",
+          "to": "arduino-runtime/user"
+        },
+        {
+          "from": "tools/arduino-cli-linux/RUNTIME-LINUX.txt",
+          "to": "arduino-runtime/RUNTIME-LINUX.txt"
+        }
+      ]
+    },
+    "deb": {
+      "packageName": "aulablocks-arduino",
+      "priority": "optional",
+      "synopsis": "Programacion visual por bloques para Arduino",
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2 | libasound2t64"
+      ],
+      "afterInstall": "build/linux-after-install.sh",
+      "afterRemove": "build/linux-after-remove.sh"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AulaBlocks Arduino",
+      "include": "build/installer.nsh"
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.28.2": true
+  }
+}

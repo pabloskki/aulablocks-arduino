@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+chmod 755 /opt/aulablocks-arduino/aulablocks-arduino
+chmod 755 /usr/bin/aulablocks-arduino
+if [ -f /opt/aulablocks-arduino/chrome-sandbox ]; then
+  chown root:root /opt/aulablocks-arduino/chrome-sandbox
+  chmod 4755 /opt/aulablocks-arduino/chrome-sandbox
+fi
+
+exit 0
+

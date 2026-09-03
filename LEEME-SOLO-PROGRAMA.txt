@@ -1,0 +1,26 @@
+AULABLOCKS - CODIGO FUENTE PARA REVISION
+
+Esta copia contiene solamente el programa AulaBlocks.
+
+Incluye:
+- interfaz Blockly;
+- generador de codigo Arduino;
+- aplicacion Electron;
+- compilacion y carga directa;
+- monitor serial;
+- sistema que permite instalar posteriormente archivos .aulasensor;
+- pruebas generales del programa;
+- informe y prompt para otra inteligencia artificial.
+
+No incluye:
+- archivos .aulasensor;
+- bibliotecas de sensores;
+- ejemplos de sensores;
+- catalogo web de sensores;
+- instaladores compilados;
+- Arduino CLI ni compiladores incorporados;
+- node_modules.
+
+Por lo anterior, esta copia sirve para revisar el codigo fuente. Para ejecutarla
+o construirla se deben restaurar las dependencias indicadas en package.json.
+Los sensores deben instalarse posteriormente desde el boton "Anadir sensor".

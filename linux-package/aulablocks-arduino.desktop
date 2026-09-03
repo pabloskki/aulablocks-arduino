@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=AulaBlocks Arduino
+Comment=Programacion visual para Arduino
+Exec=/usr/bin/aulablocks-arduino
+Terminal=false
+Type=Application
+Categories=Education;Development;
+Icon=applications-education
+StartupWMClass=AulaBlocks Arduino
+

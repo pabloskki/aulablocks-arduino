@@ -1,0 +1,53 @@
+AulaBlocks Arduino - prototipo educativo local
+
+La aplicacion permite crear programas de Arduino mediante bloques, sin escribir C++.
+
+Versiones disponibles:
+- Windows 10/11 de 64 bits: instalador y edicion portatil.
+- Linux de 64 bits: paquete portatil tar.gz para Ubuntu, Debian, Mint y derivados.
+
+En Linux, descomprimir el paquete, dar permiso de ejecucion al archivo
+"aulablocks-arduino" y abrirlo. Para conectar Arduino, el usuario debe pertenecer
+al grupo que tenga acceso al puerto serie (normalmente dialout).
+
+Carga directa:
+- Arduino Uno compatible con ATmega328P.
+- Arduino Nano compatible con ATmega328PB mediante MiniCore.
+- Deteccion de puertos USB, compilacion y carga sin abrir Arduino IDE.
+- El archivo .ino tambien puede guardarse para utilizarlo de forma externa.
+- La version Windows incluye las herramientas AVR, MiniCore y las bibliotecas
+  educativas para trabajar sin internet.
+- Reconoce placas originales y adaptadores USB comunes CH340/CH341, FTDI y
+  CP210x. Si Windows no crea un puerto COM, AulaBlocks indicara revisar el cable
+  de datos o el controlador USB en lugar de confundir la placa con COM1.
+
+Incluye:
+- Salidas digitales y analogicas para luces y actuadores.
+- Servomotor y motor DC con puente H.
+- Zumbador y LED NeoPixel.
+- Guardado de proyectos .aulablocks.
+- Exportacion de programas .ino.
+- Biblioteca de sensores instalados en este PC.
+- Instalacion de paquetes .aulasensor con bloques y bibliotecas Arduino.
+- Cada proyecto mantiene su propia lista "Mis sensores". Un proyecto nuevo
+  empieza sin sensores y al guardarlo conserva solamente los que utiliza.
+- Control de chasis L298N, rele y motor paso a paso 28BYJ-48.
+- Monitor serial integrado con lectura en tiempo real, ultimo valor destacado,
+  historial, velocidades configurables y envio de mensajes a Arduino.
+
+En la carpeta "sensor-packages" se deja el paquete externo PN532 I2C. No viene
+instalado: se agrega con "Añadir sensor". El paquete contiene sus bloques y las
+bibliotecas Adafruit PN532 y Adafruit BusIO completas. Tras instalarlo queda en
+"Biblioteca de sensores" y el boton "Usar" lo lleva a "Mis sensores" solamente
+en el proyecto actual.
+
+Los archivos .ardublock.json de la carpeta "extensions" se conservan como
+ejemplos ligeros. Esos archivos no contienen bibliotecas; para una instalacion
+autonoma y sin internet se debe usar el formato .aulasensor.
+
+El editor indica automaticamente que bibliotecas utiliza el proyecto. Las
+bibliotecas incluidas se usan directamente al comprobar o cargar desde
+AulaBlocks; Arduino IDE queda como alternativa opcional.
+
+El proyecto de alarma utiliza Arduino Mega porque el teclado, RC522, LCD, PIR,
+boton, rele y zumbador necesitan mas conexiones de las disponibles en un Uno.

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+release/
+tools/arduino-cli/
+tools/arduino-cli-linux/
+tools/.linux-runtime-downloads/
+*.log
