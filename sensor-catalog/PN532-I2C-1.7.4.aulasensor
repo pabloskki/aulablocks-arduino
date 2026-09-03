@@ -3,7 +3,7 @@
   "packageVersion": 1,
   "id": "sensor-nfc-pn532-i2c",
   "name": "Lector NFC PN532 · I2C · Adafruit",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "icon": "📶",
   "image": {
     "mimeType": "image/svg+xml",
@@ -18,20 +18,22 @@
     "Nano ATmega328PB"
   ],
   "wiring": {
-    "interface": "I2C de cuatro cables",
+    "interface": "I2C de cuatro cables + reset",
     "uno": [
       "VCC → 5V en el módulo Elechouse V3",
       "GND → GND",
       "SDA → A4",
-      "SCL → A5"
+      "SCL → A5",
+      "RSTPDN → D9"
     ],
     "nano328pb": [
       "VCC → 5V en el módulo Elechouse V3",
       "GND → GND",
       "SDA → A4",
-      "SCL → A5"
+      "SCL → A5",
+      "RSTPDN → D9"
     ],
-    "note": "En el módulo rojo probado, I2C funciona con ambos selectores en 0. Algunos clones imprimen una tabla diferente: conserva la posición con la que el ejemplo de firmware responde. No conectes IRQ ni RSTO."
+    "note": "En el módulo rojo probado, I2C funciona con ambos selectores en 0. Algunos clones imprimen una tabla diferente: conserva la posición con la que el ejemplo de firmware responde. No conectes IRQ. Conecta D9 específicamente a RSTPDN, no a un pin distinto llamado RSTO: en algunos módulos RSTO es una salida del propio módulo (indica su estado), y conectarla a D9 haría que el módulo y el Arduino intenten manejar la misma línea a la vez. RSTPDN es opcional pero recomendado: sin ese cable el sensor funciona igual, pero si el módulo se queda sin responder solo se recupera desconectando la placa; con el cable, el programa lo reinicia solo."
   },
   "libraries": [
     {
@@ -50,11 +52,14 @@
         "#include <Adafruit_PN532.h>"
       ],
       "globals": [
-        "Adafruit_PN532 pn532_i2c(0xFF, 0xFF);",
+        "Adafruit_PN532 pn532_i2c(0xFF, 9);",
         "bool pn532_i2c_ok = false;"
       ],
+      "helpers": [
+        "void pn532Reiniciar() {\n  pn532_i2c.reset();\n  delay(10);\n  uint32_t version = pn532_i2c.getFirmwareVersion();\n  pn532_i2c_ok = (version != 0);\n  if (pn532_i2c_ok) pn532_i2c.SAMConfig();\n}"
+      ],
       "setup": [
-        "delay(1000);\n  Wire.begin();\n  pn532_i2c.begin();\n  uint32_t versiondata = pn532_i2c.getFirmwareVersion();\n  pn532_i2c_ok = (versiondata != 0);\n  if (pn532_i2c_ok) pn532_i2c.SAMConfig();"
+        "delay(1000);\n  Wire.begin();\n  pn532_i2c.begin();\n  pn532Reiniciar();"
       ]
     },
     "card": {
@@ -66,10 +71,11 @@
         "uint8_t pn532_uid_largo_cache = 0;",
         "bool pn532_tarjeta_cache = false;",
         "bool pn532_cache_iniciada = false;",
-        "unsigned long pn532_cache_momento = 0;"
+        "unsigned long pn532_cache_momento = 0;",
+        "unsigned long pn532_ultimo_ok = 0;"
       ],
       "helpers": [
-        "bool pn532ActualizarTarjeta(Adafruit_PN532 &lector) {\n  unsigned long ahora = millis();\n  if (pn532_cache_iniciada && ahora - pn532_cache_momento < 80UL) return pn532_tarjeta_cache;\n  pn532_cache_iniciada = true;\n  pn532_cache_momento = ahora;\n  pn532_uid_largo_cache = 0;\n  pn532_tarjeta_cache = lector.readPassiveTargetID(PN532_MIFARE_ISO14443A, pn532_uid_cache, &pn532_uid_largo_cache, 120);\n  return pn532_tarjeta_cache;\n}",
+        "bool pn532ActualizarTarjeta(Adafruit_PN532 &lector) {\n  unsigned long ahora = millis();\n  if (pn532_cache_iniciada && ahora - pn532_cache_momento < 80UL) return pn532_tarjeta_cache;\n  pn532_cache_iniciada = true;\n  pn532_cache_momento = ahora;\n  pn532_uid_largo_cache = 0;\n  pn532_tarjeta_cache = lector.readPassiveTargetID(PN532_MIFARE_ISO14443A, pn532_uid_cache, &pn532_uid_largo_cache, 120);\n  if (pn532_tarjeta_cache) {\n    pn532_ultimo_ok = ahora;\n  } else if (ahora - pn532_ultimo_ok > 4000UL) {\n    pn532_ultimo_ok = ahora;\n    if (lector.getFirmwareVersion() == 0) pn532Reiniciar();\n  }\n  return pn532_tarjeta_cache;\n}",
         "bool pn532HayTarjeta(Adafruit_PN532 &lector) {\n  return pn532ActualizarTarjeta(lector);\n}"
       ]
     },
