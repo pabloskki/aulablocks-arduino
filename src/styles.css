@@ -135,9 +135,9 @@ button { cursor: pointer; }
 .blocklyTreeLabel { font-weight: 700; font-size: 12px; }
 .blocklyFlyout { filter: drop-shadow(5px 0 10px rgba(65, 48, 104, .07)); }
 .blocklyScrollbarHandle { rx: 4; ry: 4; }
-.aulablocks-vector-control, .aulablocks-vector-trash { pointer-events: none; }
+.aulablocks-vector-control rect, .aulablocks-vector-trash path { pointer-events: auto; }
+.aulablocks-vector-control path, .aulablocks-vector-control circle { pointer-events: none; fill: none; stroke: #655b78; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .aulablocks-vector-control rect { fill: #fff; stroke: #d9d3e8; stroke-width: 1.25; }
-.aulablocks-vector-control path, .aulablocks-vector-control circle { fill: none; stroke: #655b78; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .aulablocks-vector-trash path { fill: #fff; stroke: #655b78; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 .code-heading { display: flex; justify-content: space-between; align-items: center; }.code-heading h2 { font-size: 17px; margin: 3px 0 0; }.icon-button.light { background: #f3f0fa; }
