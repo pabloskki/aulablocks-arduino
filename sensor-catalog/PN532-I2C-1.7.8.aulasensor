@@ -3,7 +3,7 @@
   "packageVersion": 1,
   "id": "sensor-nfc-pn532-i2c",
   "name": "Lector NFC PN532 · I2C · Adafruit",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "icon": "📶",
   "image": {
     "mimeType": "image/svg+xml",
@@ -54,13 +54,10 @@
       "globals": [
         "Adafruit_PN532 pn532_i2c(0xFF, 0xFF);",
         "bool pn532_i2c_ok = false;",
-        "int pn532_pin_reset = 9;",
-        "unsigned long pn532_ultimo_intento_activo = 0;",
-        "bool pn532_intento_iniciado = false;"
+        "int pn532_pin_reset = 9;"
       ],
       "helpers": [
-        "void pn532Reiniciar() {\n  unsigned long ahora = millis();\n  if (pn532_intento_iniciado && ahora - pn532_ultimo_intento_activo < 2000UL) return;\n  pn532_intento_iniciado = true;\n  pn532_ultimo_intento_activo = ahora;\n  pinMode(pn532_pin_reset, OUTPUT);\n  digitalWrite(pn532_pin_reset, LOW);\n  delay(1);\n  digitalWrite(pn532_pin_reset, HIGH);\n  delay(2);\n  uint32_t version = pn532_i2c.getFirmwareVersion();\n  pn532_i2c_ok = (version != 0);\n  if (pn532_i2c_ok) pn532_i2c.SAMConfig();\n}",
-        "bool pn532EstaActivo() {\n  if (pn532_i2c_ok) return true;\n  pn532Reiniciar();\n  return pn532_i2c_ok;\n}"
+        "void pn532Reiniciar() {\n  pinMode(pn532_pin_reset, OUTPUT);\n  digitalWrite(pn532_pin_reset, LOW);\n  delay(1);\n  digitalWrite(pn532_pin_reset, HIGH);\n  delay(2);\n  uint32_t version = pn532_i2c.getFirmwareVersion();\n  pn532_i2c_ok = (version != 0);\n  if (pn532_i2c_ok) pn532_i2c.SAMConfig();\n}"
       ],
       "setup": [
         "delay(1000);\n  Wire.begin();\n  pn532_i2c.begin();\n  pn532Reiniciar();"
@@ -131,8 +128,8 @@
       ],
       "message0": "lector PN532 I2C está activado",
       "output": "Boolean",
-      "code": "pn532EstaActivo()",
-      "tooltip": "Es verdadero cuando el PN532 respondió y quedó listo para leer tarjetas. Si no responde, este mismo bloque intenta reconectarlo automáticamente (como máximo cada 2 segundos) sin que tengas que hacer nada más.",
+      "code": "pn532_i2c_ok",
+      "tooltip": "Es verdadero cuando el PN532 respondió y quedó listo para leer tarjetas.",
       "args0": [],
       "codeKind": "expression"
     },
@@ -200,8 +197,8 @@
           ]
         }
       ],
-      "code": "pn532_pin_reset = {{PIN}};\n  pn532Reiniciar();",
-      "tooltip": "Reinicia el sensor NFC usando el pin indicado como RSTPDN (por defecto pin 9). Colócalo en “al encender Arduino” para elegir el pin una sola vez, o dentro de “repetir siempre” si quieres poder forzar una reconexión manual — como máximo reinicia una vez cada 2 segundos, así que no interrumpe la lectura aunque lo dejes en el bucle. Si nunca lo usas, el sensor igual funciona solo con el pin 9."
+      "code": "pn532_pin_reset = {{PIN}};",
+      "tooltip": "Cambia el pin conectado a RSTPDN (por defecto pin 9). Colócalo en “al encender Arduino”, antes de otros bloques del sensor NFC. Si no lo usas, se usa el pin 9."
     }
   ],
   "bundledLibraries": [
