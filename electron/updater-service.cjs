@@ -5,7 +5,7 @@ const RELEASES_PAGE = 'https://github.com/pabloskki/aulablocks-arduino/releases/
 
 function createUpdaterService({ platform = process.platform, sendToRenderer }) {
   autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   let lastInfo = null;
 

@@ -377,13 +377,17 @@ async function checkAppUpdatesManually() {
 }
 
 async function handleUpdateStatus(status) {
-  if (status.state !== 'downloading') {
+  if (status.state === 'downloading') {
+    manualUpdateCheckPending = false;
+    document.querySelector('#check-app-updates').disabled = true;
+    document.querySelector('#app-version-text').textContent = `Descargando… ${status.percent || 0}%`;
+  } else {
     const wasManual = manualUpdateCheckPending;
     manualUpdateCheckPending = false;
     document.querySelector('#check-app-updates').disabled = false;
+    const versionLabel = window.aulaBlocks?.appVersion ? `v${window.aulaBlocks.appVersion}` : 'v…';
+    document.querySelector('#app-version-text').textContent = versionLabel;
     if (wasManual) {
-      const versionLabel = window.aulaBlocks?.appVersion ? `v${window.aulaBlocks.appVersion}` : 'v…';
-      document.querySelector('#app-version-text').textContent = versionLabel;
       if (status.state === 'not-available') showToast('Ya tienes la última versión de AulaBlocks.');
       if (status.state === 'error') showToast(status.message || 'No pudimos revisar actualizaciones. Revisa tu conexión a internet.');
     }
@@ -406,7 +410,13 @@ async function handleUpdateStatus(status) {
       if (proceed) window.aulaBlocks.openUpdateReleasesPage();
     }
   } else if (status.state === 'ready') {
-    showToast('Actualización descargada. Se instalará la próxima vez que abras AulaBlocks.');
+    const proceed = await askConfirmation(
+      'Actualización lista',
+      'Se descargó la nueva versión de AulaBlocks. Para instalarla, el programa se va a cerrar y puede pedir permiso de administrador (acepta esa ventana para que la instalación termine bien). Guarda tu proyecto antes de continuar.',
+      'Instalar y reiniciar ahora'
+    );
+    if (proceed) window.aulaBlocks.installUpdateNow();
+    else showToast('Instalación pendiente. Vuelve a buscar actualizaciones cuando quieras instalarla.');
   } else if (status.state === 'error') {
     console.warn('AulaBlocks: no se pudo revisar actualizaciones —', status.message);
   }
