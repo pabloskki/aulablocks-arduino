@@ -30,7 +30,7 @@ jobs:
           gh run download "$RUN_ID" --name aulablocks-linux-beta5 --dir packages
           cd packages
           sha256sum --check SHA256SUMS-linux.txt
-          test "$(dpkg-deb -f AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-amd64.deb Version)" = '0.10.0-beta.5'
+          test "$(dpkg-deb -f AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-amd64.deb Version)" = '0.10.0~beta.5'
       - name: Añadir Linux sin reemplazar Windows
         env:
           GH_TOKEN: ${{ github.token }}
