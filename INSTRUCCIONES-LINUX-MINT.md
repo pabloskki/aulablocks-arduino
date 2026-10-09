@@ -2,7 +2,7 @@
 
 ## Instalación fija recomendada
 
-1. Copia el archivo `AulaBlocks-Arduino-<version>-Linux-Mint-amd64.deb` al computador.
+1. Copia el archivo `AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-x64.deb` al computador (Linux Mint de 64 bits, Intel/AMD).
 2. Ábrelo con doble clic.
 3. Pulsa **Instalar paquete** e ingresa la contraseña del computador.
 4. Busca **AulaBlocks Arduino** en el menú de aplicaciones de Linux Mint.
@@ -10,7 +10,7 @@
 También se puede instalar desde la terminal:
 
 ```bash
-sudo apt install ./AulaBlocks-Arduino-<version>-Linux-Mint-amd64.deb
+sudo apt install ./AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-x64.deb
 ```
 
 Para desinstalarlo:
@@ -55,3 +55,11 @@ El archivo incluye las herramientas para compilar, cargar y usar el monitor seri
 - Conversores USB habituales, incluidos CH340/CH341, cuando Linux Mint reconoce el dispositivo.
 
 Los paquetes de sensores `.aulasensor` se instalan desde **Añadir sensor**. Si un paquete necesita una biblioteca Arduino, esa biblioteca viaja dentro del mismo archivo y queda guardada localmente.
+
+## Actualizar una instalación anterior
+
+Instala el nuevo `.deb` sobre la versión anterior, sin desinstalarla primero. No borres la carpeta de datos de AulaBlocks; conserva también una copia de tus proyectos.
+
+En Linux la actualización del programa se instala mediante el paquete `.deb`; no se instala automáticamente como en Windows. El catálogo de sensores sí usa los mismos paquetes y actualizaciones que Windows. El ZIP `Sensores-actualizados-AulaBlocks-beta.5.zip` sirve para ambos sistemas.
+
+La compilación automatizada no sustituye la prueba en un equipo Linux Mint real: comprobar apertura, guardar/abrir proyectos, conexión USB, carga a Uno/Nano y monitor serial. Las dependencias del sistema que falten pueden requerir internet durante la primera instalación del `.deb`.

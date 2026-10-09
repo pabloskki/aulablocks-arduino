@@ -14,10 +14,10 @@ function sensor(id, libraries) {
     libraries: libraries.map(({ name, version }) => ({ name, version })), bundledLibraries: libraries,
     blocks: [{ type: id + '_read', message0: 'read', code: '1', output: 'Number' }] };
 }
-async function fixture(t) {
+async function fixture(t, platform = process.platform) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'aulablocks-install-test-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
-  return { root, service: serviceModule.createArduinoService({ runtimeRoot: path.join(root, 'runtime'), writableRoot: path.join(root, 'data') }) };
+  return { root, service: serviceModule.createArduinoService({ runtimeRoot: path.join(root, 'runtime'), writableRoot: path.join(root, 'data'), platform }) };
 }
 test('biblioteca dañada no reemplaza ninguna biblioteca anterior', async (t) => {
   const { root, service } = await fixture(t);
@@ -57,7 +57,7 @@ test('rechaza carpetas de biblioteca que salen del destino', async (t) => {
 });
 
 test('Windows detecta conflictos aunque cambien mayúsculas de carpeta', async (t) => {
-  const { root, service } = await fixture(t);
+  const { root, service } = await fixture(t, 'win32');
   await service.installSensorPackage(sensor('first', [library('1')]));
   await assert.rejects(service.installSensorPackage(sensor('second', [library('2', 'example')])), /incompatibles/);
   assert.equal(await fs.readFile(path.join(root, 'data/user/libraries/Example/Example.h'), 'utf8'), '1');
