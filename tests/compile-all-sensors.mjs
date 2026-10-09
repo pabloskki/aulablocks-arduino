@@ -13,7 +13,7 @@ const { createArduinoService } = arduinoServiceModule;
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runtimeRoot = path.resolve(process.argv[2] || path.join(root, 'tools', 'arduino-cli'));
 const writableRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'aulablocks-sensor-test-'));
-const service = createArduinoService({ runtimeRoot, writableRoot, platform: 'win32', bundleVersion: 'test' });
+const service = createArduinoService({ runtimeRoot, writableRoot, platform: process.platform, bundleVersion: 'test' });
 const catalog = JSON.parse(await fs.readFile(path.join(root, 'sensor-catalog.json'), 'utf8'));
 const results = [];
 
