@@ -2,7 +2,7 @@
 
 ## Instalación fija recomendada
 
-1. Copia el archivo `AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-x64.deb` al computador (Linux Mint de 64 bits, Intel/AMD).
+1. Copia el archivo `AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-amd64.deb` al computador (Linux Mint de 64 bits, Intel/AMD).
 2. Ábrelo con doble clic.
 3. Pulsa **Instalar paquete** e ingresa la contraseña del computador.
 4. Busca **AulaBlocks Arduino** en el menú de aplicaciones de Linux Mint.
@@ -10,7 +10,7 @@
 También se puede instalar desde la terminal:
 
 ```bash
-sudo apt install ./AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-x64.deb
+sudo apt install ./AulaBlocks-Arduino-0.10.0-beta.5-Linux-Mint-amd64.deb
 ```
 
 Para desinstalarlo:
