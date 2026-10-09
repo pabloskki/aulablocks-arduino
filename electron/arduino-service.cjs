@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
+const { commitReplacements } = require('./file-transaction.cjs');
 
 const BOARDS = {
   uno: {
@@ -20,6 +21,9 @@ function createArduinoService({ runtimeRoot, writableRoot, platform = process.pl
   const bundledCli = runtimeRoot ? path.join(runtimeRoot, 'bin', executableName) : null;
   const cliPath = bundledCli || executableName;
   let monitorChild = null;
+  let installQueue = Promise.resolve();
+  let building = false;
+  let installing = false;
   const stoppedMonitors = new WeakSet();
 
   async function prepareConfig() {
@@ -82,24 +86,72 @@ function createArduinoService({ runtimeRoot, writableRoot, platform = process.pl
   }
 
   async function installSensorPackage(sensorPackage) {
-    validateSensorManifest(sensorPackage);
+    return (await installSensorPackages([sensorPackage]))[0];
+  }
+
+  async function installSensorPackages(packages) {
+    const task = installQueue.then(async () => {
+      if (building) throw new Error('Espera a que termine la compilación o carga antes de instalar sensores.');
+      installing = true;
+      try { return await installSensorPackagesInternal(packages); }
+      finally { installing = false; }
+    });
+    installQueue = task.catch(() => {});
+    return task;
+  }
+
+  async function installSensorPackagesInternal(packages) {
+    if (!Array.isArray(packages) || !packages.length) throw new Error('Selecciona al menos un paquete.');
+    packages = structuredClone(packages);
+    packages.forEach(validateSensorManifest);
+    const { validateSensorTypes } = await import('./sensor-types.mjs');
+    packages.forEach(validateSensorTypes);
+    const updatingIds = new Set(packages.map((item) => item.id));
+    if (updatingIds.size !== packages.length) throw new Error('El lote repite un sensor.');
     await ensureBundledLibraries();
-    const libraries = sensorPackage.bundledLibraries || [];
     const registry = await readLibraryRegistry();
-    const warnings = [];
-    let totalBytes = 0;
-    for (const library of libraries) {
-      validateLibrary(library);
-      const resolution = resolveLibraryInstall(registry, library.folder, library.version, sensorPackage.id);
-      if (resolution.action === 'skip') continue;
-      if (resolution.action === 'conflict') {
-        warnings.push(`La biblioteca “${library.name}” no se instaló: la carpeta “${library.folder}” ya la usa otro sensor con la versión ${resolution.existing.version}. Ambos sensores podrían no funcionar bien juntos.`);
-        continue;
+    const catalog = await listSensorCatalog();
+    const { assertCompatibleSensor, assertCatalogBlockOwnership } = await import('./sensor-compatibility.mjs');
+    assertCatalogBlockOwnership(catalog, packages);
+    for (const item of packages) assertCompatibleSensor(catalog.find(previous => previous.id === item.id), item);
+    // Migrate old catalogs, which kept names/versions but no list of consumers.
+    for (const record of Object.values(registry)) {
+      record.consumers ||= record.origin && record.origin !== 'bundled' ? { [record.origin]: record.version } : {};
+      for (const sensor of catalog) {
+        const dependency = (sensor.libraries || []).find((item) => (item.name || item) === record.name);
+        if (dependency) record.consumers[sensor.id] = dependency.version || record.version;
       }
+      for (const id of updatingIds) delete record.consumers[id];
+    }
+    const transactionRoot = await fs.mkdtemp(path.join(writableRoot, '.sensor-install-'));
+    const replacements = [];
+    const results = [];
+    try {
+    for (const sensorPackage of packages) {
+    const libraries = sensorPackage.bundledLibraries || [];
+    libraries.forEach(validateLibrary);
+    if (platform === 'win32') {
+      for (const library of libraries) {
+        library.folder = Object.keys(registry).find((key) => key.toLowerCase() === library.folder.toLowerCase()) || library.folder;
+      }
+    }
+    const warnings = [];
+    if (sensorPackage.blocks.some((block) => !block.hardware)) warnings.push('Este sensor no declara todos sus pines. Puedes programarlo, pero debes revisar sus conexiones manualmente.');
+    let totalBytes = 0;
+    libraries.forEach(validateLibrary);
+    if (new Set(libraries.map((item) => item.folder.toLowerCase())).size !== libraries.length) throw new Error('El paquete repite una carpeta de biblioteca.');
+    const conflicts = libraries
+      .map((library) => ({ library, resolution: resolveLibraryInstall(registry, library.folder, library.version, sensorPackage.id) }))
+      .filter((item) => item.resolution.action === 'conflict');
+    if (conflicts.length) {
+      const detail = conflicts.map(({ library, resolution }) => `“${library.name}” necesita ${library.version}, pero está instalada ${resolution.existing.version}`).join('; ');
+      throw new Error(`No se instaló el sensor porque sus bibliotecas son incompatibles con otro paquete: ${detail}. Actualiza ambos sensores a versiones compatibles o quita el paquete anterior.`);
+    }
+    for (const library of libraries) {
+      const resolution = resolveLibraryInstall(registry, library.folder, library.version, sensorPackage.id);
       const libraryRoot = path.join(writableRoot, 'user', 'libraries');
       const target = path.join(libraryRoot, library.folder);
-      const temporary = path.join(libraryRoot, `.${library.folder}-${crypto.randomUUID()}`);
-      await fs.mkdir(temporary, { recursive: true });
+      const temporary = await fs.mkdtemp(path.join(transactionRoot, 'library-'));
       try {
         for (const file of library.files) {
           const relative = safeRelativePath(file.path);
@@ -112,22 +164,35 @@ function createArduinoService({ runtimeRoot, writableRoot, platform = process.pl
           await fs.mkdir(path.dirname(destination), { recursive: true });
           await fs.writeFile(destination, data);
         }
-        await replaceDirectory(temporary, target);
-        registry[library.folder] = { name: library.name, version: library.version, origin: sensorPackage.id };
+        if (resolution.action !== 'skip') replacements.push({ source: temporary, target });
+        registry[library.folder] = {
+          name: library.name, version: library.version, origin: sensorPackage.id,
+          consumers: { ...(registry[library.folder]?.consumers || {}), [sensorPackage.id]: library.version }
+        };
       } catch (error) {
         await fs.rm(temporary, { recursive: true, force: true });
         throw error;
       }
     }
-    await writeLibraryRegistry(registry);
-
     const extension = sanitizeSensorPackage(sensorPackage);
-    const catalog = await listSensorCatalog();
     const existing = catalog.findIndex((item) => item.id === extension.id);
     if (existing >= 0) catalog[existing] = extension;
     else catalog.push(extension);
-    await writeJsonAtomic(path.join(writableRoot, 'sensor-catalog.json'), catalog);
-    return { extension, installedLibraries: libraries.map((library) => ({ name: library.name, version: library.version })), warnings };
+    results.push({ extension, installedLibraries: libraries.map((library) => ({ name: library.name, version: library.version })), warnings });
+    }
+    for (const [filename, data, target] of [
+      ['registry.json', registry, path.join(writableRoot, 'user', 'library-registry.json')],
+      ['catalog.json', catalog, path.join(writableRoot, 'sensor-catalog.json')]
+    ]) {
+      const source = path.join(transactionRoot, filename);
+      await fs.writeFile(source, JSON.stringify(data, null, 2), 'utf8');
+      replacements.push({ source, target });
+    }
+    await commitReplacements(replacements);
+    return results;
+    } finally {
+      await fs.rm(transactionRoot, { recursive: true, force: true });
+    }
   }
 
   async function readLibraryRegistry() {
@@ -169,6 +234,13 @@ function createArduinoService({ runtimeRoot, writableRoot, platform = process.pl
   }
 
   async function buildAndMaybeUpload(payload, onProgress = () => {}) {
+    if (building || installing) throw new Error('Hay otra operación en curso. Espera a que termine.');
+    building = true;
+    try { return await buildInternal(payload, onProgress); }
+    finally { building = false; }
+  }
+
+  async function buildInternal(payload, onProgress = () => {}) {
     validatePayload(payload);
     if (payload.upload) await stopSerialMonitor();
     const board = BOARDS[payload.board];
@@ -216,6 +288,7 @@ function createArduinoService({ runtimeRoot, writableRoot, platform = process.pl
   }
 
   async function startSerialMonitor(payload, onData = () => {}, onStatus = () => {}) {
+    if (building) throw new Error('Espera a que termine la compilación o carga antes de abrir el monitor.');
     const port = payload?.port;
     const baudrate = Number(payload?.baudrate || 9600);
     if (!validPort(port)) throw new Error('Selecciona el puerto USB de tu Arduino.');
@@ -277,7 +350,7 @@ function createArduinoService({ runtimeRoot, writableRoot, platform = process.pl
     return { ok: true };
   }
 
-  return { listPorts, buildAndMaybeUpload, installSensorPackage, listSensorCatalog, startSerialMonitor, stopSerialMonitor, sendSerialMonitor, boards: BOARDS };
+  return { listPorts, buildAndMaybeUpload, installSensorPackage, installSensorPackages, listSensorCatalog, startSerialMonitor, stopSerialMonitor, sendSerialMonitor, boards: BOARDS };
 }
 
 function validateSensorManifest(sensorPackage) {
@@ -285,10 +358,29 @@ function validateSensorManifest(sensorPackage) {
   if (!sensorPackage.id || !sensorPackage.name || !Array.isArray(sensorPackage.blocks) || !sensorPackage.blocks.length) throw new Error('El paquete debe incluir un identificador, nombre y al menos un bloque.');
   if (sensorPackage.bundledLibraries != null && !Array.isArray(sensorPackage.bundledLibraries)) throw new Error('La lista de bibliotecas del paquete no es válida.');
   if (sensorPackage.image != null) sanitizeSensorImage(sensorPackage.image);
+  const types = new Set();
+  for (const block of sensorPackage.blocks) {
+    if (!block || typeof block.type !== 'string' || !block.type || !block.message0 || typeof block.code !== 'string' || types.has(block.type)) throw new Error('El paquete contiene bloques inválidos o repetidos.');
+    types.add(block.type);
+    validateBlockHardware(block);
+  }
+}
+
+function validateBlockHardware(block) {
+  // Los paquetes antiguos continúan instalándose; AulaBlocks avisará que no puede
+  // comprobar sus pines hasta que el autor agregue esta metadata.
+  if (!block.hardware) return;
+  if (!Array.isArray(block.hardware.pins) || !block.hardware.pins.length || !Array.isArray(block.hardware.deviceKey)) throw new Error(`Las conexiones del bloque ${block.type} no son válidas.`);
+  const fields = new Set((block.args0 || []).map((argument) => argument.name).filter(Boolean));
+  for (const pin of block.hardware.pins) {
+    if ((!pin.field && !pin.pin) || (pin.field && !fields.has(pin.field))) throw new Error(`El bloque ${block.type} contiene una conexión desconocida.`);
+    if (!pin.mode || (pin.sharedBus != null && typeof pin.sharedBus !== 'string')) throw new Error(`El bloque ${block.type} contiene una conexión incompleta.`);
+  }
+  for (const field of block.hardware.deviceKey) if (!fields.has(field)) throw new Error(`El bloque ${block.type} usa un identificador de dispositivo desconocido.`);
 }
 
 function validateLibrary(library) {
-  if (!library?.name || !library?.version || !/^[A-Za-z0-9_.-]+$/.test(library.folder || '') || !Array.isArray(library.files) || !library.files.length) throw new Error('Una biblioteca incluida en el paquete no es válida.');
+  if (!library?.name || !library?.version || !/^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(library.folder || '') || library.folder.endsWith('.') || !Array.isArray(library.files) || !library.files.length) throw new Error('Una biblioteca incluida en el paquete no es válida.');
   for (const file of library.files) {
     if (!file?.path || !['base64', 'utf8'].includes(file.encoding) || typeof file.content !== 'string') throw new Error(`La biblioteca ${library.name} contiene un archivo no válido.`);
   }
@@ -348,8 +440,11 @@ async function readLibraryProperties(directory) {
 function resolveLibraryInstall(registry, folder, version, origin) {
   const existing = registry[folder];
   if (!existing) return { action: 'install' };
-  if (existing.origin === origin) return compareVersions(version, existing.version) > 0 ? { action: 'install' } : { action: 'skip' };
-  return compareVersions(version, existing.version) === 0 ? { action: 'skip' } : { action: 'conflict', existing };
+  if (compareVersions(version, existing.version) === 0) return { action: 'skip' };
+  const consumers = existing.consumers || (existing.origin !== 'bundled' ? { [existing.origin]: existing.version } : {});
+  const otherConsumers = Object.keys(consumers).filter((id) => id !== origin);
+  if (otherConsumers.length) return { action: 'conflict', existing };
+  return { action: 'install' };
 }
 
 function compareVersions(a, b) {

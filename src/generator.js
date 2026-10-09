@@ -1,4 +1,6 @@
 import * as Blockly from 'blockly/core';
+import { isExecutableBlock } from './executable-blocks.js';
+import { assertConnectionTypes } from './connection-types.js';
 
 const BlocklyApi = Blockly.CodeGenerator ? Blockly : Reflect.get(Blockly, 'default');
 
@@ -25,9 +27,10 @@ arduinoGenerator.scrub_ = function (block, code, thisOnly) {
   return code + (next ? this.blockToCode(next) : '');
 };
 
-const value = (block, name, fallback = '0') => arduinoGenerator.valueToCode(block, name, ORDER.NONE) || fallback;
+const value = (block, name, fallback = '0', outerOrder = ORDER.NONE) => arduinoGenerator.valueToCode(block, name, outerOrder) || fallback;
 
 let variableIdentifiers = new Map();
+let loopIdentifier = 0;
 
 const RESERVED_IDENTIFIERS = new Set([
   'alignas', 'alignof', 'and', 'and_eq', 'asm', 'atomic_cancel', 'atomic_commit', 'atomic_noexcept',
@@ -40,7 +43,9 @@ const RESERVED_IDENTIFIERS = new Set([
   'requires', 'return', 'short', 'signed', 'sizeof', 'static', 'static_assert', 'static_cast', 'struct',
   'switch', 'template', 'this', 'thread_local', 'throw', 'true', 'try', 'typedef', 'typeid', 'typename',
   'union', 'unsigned', 'using', 'virtual', 'void', 'volatile', 'wchar_t', 'while', 'xor', 'xor_eq',
-  'setup', 'loop', 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'String', 'Serial'
+  'setup', 'loop', 'HIGH', 'LOW', 'INPUT', 'OUTPUT', 'INPUT_PULLUP', 'String', 'Serial',
+  'millis', 'micros', 'delay', 'pinMode', 'digitalRead', 'digitalWrite', 'analogRead', 'analogWrite',
+  'random', 'map', 'tone', 'noTone', 'Wire', 'SPI'
 ]);
 
 arduinoGenerator.forBlock.math_number = (block) => [`${Number(block.getFieldValue('NUM')) || 0}`, ORDER.ATOMIC];
@@ -49,7 +54,9 @@ arduinoGenerator.forBlock.logic_boolean = (block) => [block.getFieldValue('BOOL'
 arduinoGenerator.forBlock.logic_negate = (block) => [`!(${value(block, 'BOOL', 'false')})`, ORDER.UNARY];
 arduinoGenerator.forBlock.logic_compare = (block) => {
   const ops = { EQ: '==', NEQ: '!=', LT: '<', LTE: '<=', GT: '>', GTE: '>=' };
-  return [`${value(block, 'A')} ${ops[block.getFieldValue('OP')]} ${value(block, 'B')}`, ORDER.RELATIONAL];
+  const operation = block.getFieldValue('OP');
+  const order = ['EQ', 'NEQ'].includes(operation) ? ORDER.EQUALITY : ORDER.RELATIONAL;
+  return [`(${value(block, 'A')}) ${ops[operation]} (${value(block, 'B')})`, order];
 };
 arduinoGenerator.forBlock.logic_operation = (block) => {
   const op = block.getFieldValue('OP') === 'AND' ? '&&' : '||';
@@ -58,10 +65,8 @@ arduinoGenerator.forBlock.logic_operation = (block) => {
 arduinoGenerator.forBlock.math_arithmetic = (block) => {
   const ops = { ADD: '+', MINUS: '-', MULTIPLY: '*', DIVIDE: '/', POWER: null };
   const op = ops[block.getFieldValue('OP')];
-  const a = value(block, 'A');
-  const b = value(block, 'B');
-  if (!op) return [`pow(${a}, ${b})`, ORDER.ATOMIC];
-  return [`${a} ${op} ${b}`, op === '*' || op === '/' ? ORDER.MULTIPLICATIVE : ORDER.ADDITIVE];
+  if (!op) return [`pow(${value(block, 'A')}, ${value(block, 'B')})`, ORDER.ATOMIC];
+  return [`(static_cast<float>(${value(block, 'A')}) ${op} (${value(block, 'B')}))`, ORDER.ATOMIC];
 };
 arduinoGenerator.forBlock.math_random_int = (block) => [`random(${value(block, 'FROM')}, (${value(block, 'TO')}) + 1)`, ORDER.ATOMIC];
 
@@ -79,8 +84,11 @@ arduinoGenerator.forBlock.controls_if = (block) => {
 };
 arduinoGenerator.forBlock.controls_repeat_ext = (block) => {
   const times = value(block, 'TIMES', '0');
+  const id = loopIdentifier++;
+  const counter = `aulablocks_repeat_${id}`;
+  const limit = `aulablocks_limit_${id}`;
   const branch = arduinoGenerator.statementToCode(block, 'DO');
-  return `for (int repetir = 0; repetir < ${times}; repetir++) {\n${branch}}\n`;
+  return `{\nconst float ${limit} = ${times};\nfor (unsigned long ${counter} = 0; ${counter} < ${limit} && ${counter} < 4294967295UL; ++${counter}) {\n${branch}}\n}\n`;
 };
 arduinoGenerator.forBlock.controls_whileUntil = (block) => {
   const condition = value(block, 'BOOL', 'false');
@@ -150,11 +158,13 @@ arduinoGenerator.forBlock.robot_drive = (block) => robotDriveCode(block, value(b
 arduinoGenerator.forBlock.stepper_move = (block) => `${stepperName(block)}.setSpeed(${block.getFieldValue('RPM')});\n${stepperName(block)}.step(${value(block, 'STEPS', '512')});\n`;
 
 export function generateSketch(workspace, extensions = []) {
-  const allBlocks = workspace.getAllBlocks(false);
+  assertConnectionTypes(workspace);
+  loopIdentifier = 0;
+  const allBlocks = workspace.getAllBlocks(false).filter(isExecutableBlock);
   const types = new Set(allBlocks.map((block) => block.type));
   const includes = new Set();
   const globals = new Set();
-  const setup = new Set(['Serial.begin(9600);']);
+  const setup = new Set();
   const loopPrelude = new Set();
   const extensionHelpers = new Set();
 
@@ -173,6 +183,7 @@ export function generateSketch(workspace, extensions = []) {
   }
 
   for (const block of allBlocks) {
+    if (block.type === 'serial_print') setup.add('Serial.begin(9600);');
     if (['digital_write', 'buzzer_tone'].includes(block.type)) setup.add(`pinMode(${block.getFieldValue('PIN')}, OUTPUT);`);
     if (block.type === 'digital_read') setup.add(`pinMode(${block.getFieldValue('PIN')}, INPUT);`);
     if (block.type === 'servo_write') {
@@ -278,8 +289,8 @@ export function generateSketch(workspace, extensions = []) {
     }
   }
 
-  const setupEvents = workspace.getTopBlocks(true).filter((block) => block.type === 'arduino_setup');
-  const loopEvents = workspace.getTopBlocks(true).filter((block) => block.type === 'arduino_loop');
+  const setupEvents = workspace.getTopBlocks(true).filter((block) => block.type === 'arduino_setup' && isExecutableBlock(block));
+  const loopEvents = workspace.getTopBlocks(true).filter((block) => block.type === 'arduino_loop' && isExecutableBlock(block));
   const setupBody = setupEvents.map((block) => arduinoGenerator.statementToCode(block, 'DO')).join('');
   const loopBody = loopEvents.map((block) => arduinoGenerator.statementToCode(block, 'DO')).join('');
   let helpers = types.has('ultrasonic_read') ? `\nfloat medirDistancia(int trig, int echo) {\n  digitalWrite(trig, LOW);\n  delayMicroseconds(2);\n  digitalWrite(trig, HIGH);\n  delayMicroseconds(10);\n  digitalWrite(trig, LOW);\n  long duracion = pulseIn(echo, HIGH, 30000);\n  return duracion * 0.0343 / 2.0;\n}\n` : '';
@@ -334,7 +345,7 @@ function buildVariableIdentifiers(variables) {
   const map = new Map();
   for (const variable of variables) {
     let base = safeName(variable.name);
-    if (RESERVED_IDENTIFIERS.has(base)) base = `var_${base}`;
+    if (RESERVED_IDENTIFIERS.has(base) || base.startsWith('aulablocks_')) base = `var_${base}`;
     let candidate = base;
     let suffix = 2;
     while (used.has(candidate)) {

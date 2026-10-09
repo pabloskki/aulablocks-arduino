@@ -4,6 +4,12 @@ import * as Es from 'blockly/msg/es';
 import { registerArduinoBlocks, toolbox, CATEGORY_COLOURS } from './blocks.js';
 import { arduinoGenerator, generateSketch, registerExtensionGenerators } from './generator.js';
 import { exclusiveExtensionTypes, extensionBlockTypes, extensionCategoryName, extensionToolboxCategories } from './extension-categories.js';
+import { findPinIssues } from './pin-validation.js';
+import { isExecutableBlock } from './executable-blocks.js';
+import { validateExtensionRegistration } from './extension-validation.js';
+import { assertCompatibleSensor } from '../electron/sensor-compatibility.mjs';
+import { AulaConnectionChecker, assertConnectionTypes } from './connection-types.js';
+import { protectModalBackground } from './modal-layer.js';
 import robotLogo from './assets/aulablocks-robot-logo.png';
 import './styles.css';
 
@@ -27,6 +33,7 @@ app.innerHTML = `
         <button class="button ghost" id="new-project"><span>＋</span> Nuevo</button>
         <button class="button ghost" id="open-project"><span>⌂</span> Abrir</button>
         <button class="button primary" id="save-project"><span>▣</span> Guardar</button>
+        <button class="button ghost" id="recover-project" title="Guardar una copia del último trabajo recuperable">Recuperar</button>
       </div>
     </header>
 
@@ -37,7 +44,6 @@ app.innerHTML = `
           <select id="board-select" aria-label="Seleccionar placa Arduino">
             <option value="uno">Arduino Uno</option>
             <option value="nano">Nano compatible · ATmega328PB</option>
-            <option value="mega">Arduino Mega</option>
           </select>
         </div>
         <div class="board-card">
@@ -228,6 +234,7 @@ const theme = Blockly.Theme.defineTheme('aulaBlocksTheme', {
 });
 
 const workspace = Blockly.inject('blockly-area', {
+  plugins: { connectionChecker: AulaConnectionChecker },
   toolbox,
   theme,
   renderer: 'zelos',
@@ -239,6 +246,10 @@ const workspace = Blockly.inject('blockly-area', {
 workspace.registerButtonCallback('CREATE_AULABLOCKS_VARIABLE', openVariableModal);
 workspace.registerToolboxCategoryCallback('AULABLOCKS_VARIABLES', variableToolboxContents);
 sharpenBlocklyControls();
+protectModalBackground(document, () => {
+  Blockly.WidgetDiv.hide();
+  Blockly.DropDownDiv.hideWithoutAnimation();
+});
 
 let extensions = [];
 const extensionTypeOwners = new Map();
@@ -252,6 +263,12 @@ let serialPending = '';
 let monitorConnected = false;
 let hasUnsavedChanges = false;
 let confirmResolver = null;
+let recoveryAtStart = null;
+let recoveryReady = false;
+let recoveryBusy = false;
+let recoveryWarned = false;
+let lastRecoveryContent = '';
+let generationError = '';
 
 createStarterProgram();
 updateCode();
@@ -274,6 +291,7 @@ document.querySelector('#undo').addEventListener('click', () => workspace.undo(f
 document.querySelector('#redo').addEventListener('click', () => workspace.undo(true));
 document.querySelector('#new-project').addEventListener('click', newProject);
 document.querySelector('#save-project').addEventListener('click', saveProject);
+document.querySelector('#recover-project').addEventListener('click', recoverProject);
 document.querySelector('#open-project').addEventListener('click', openProject);
 document.querySelector('#export-ino').addEventListener('click', exportIno);
 document.querySelector('#import-extension').addEventListener('click', importExtension);
@@ -350,6 +368,39 @@ else document.querySelector('#check-app-updates').hidden = true;
 document.querySelector('#check-app-updates').addEventListener('click', checkAppUpdatesManually);
 updateBoardControls();
 loadSensorCatalog();
+initializeRecovery();
+setInterval(async () => {
+  if (!recoveryReady || recoveryBusy || !hasUnsavedChanges || !window.aulaBlocks?.saveRecovery) return;
+  recoveryBusy = true;
+  try {
+    const content = JSON.stringify(projectData());
+    if (content !== lastRecoveryContent) {
+      await window.aulaBlocks.saveRecovery(content);
+      lastRecoveryContent = content;
+    }
+  }
+  catch (error) {
+    if (!recoveryWarned) { showToast('No se pudo crear el respaldo automático. Guarda tu proyecto manualmente.'); recoveryWarned = true; }
+  } finally { recoveryBusy = false; }
+}, 5000);
+
+async function initializeRecovery() {
+  if (!window.aulaBlocks?.readRecovery) return;
+  try {
+    recoveryAtStart = await window.aulaBlocks.readRecovery();
+    if (recoveryAtStart) showToast('Hay un trabajo recuperable. Pulsa Recuperar para guardar una copia.');
+  } catch { showToast('No se pudo leer el respaldo de recuperación.'); }
+  recoveryReady = true;
+}
+
+async function recoverProject() {
+  try {
+    const recovery = recoveryAtStart || await window.aulaBlocks?.readRecovery?.();
+    if (!recovery) return openModal('Sin respaldo', 'Aún no hay un proyecto recuperable. En la aplicación instalada se respalda cada cinco segundos mientras trabajas.', '!');
+    const result = await saveText({ title: 'Guardar proyecto recuperado', defaultPath: 'Proyecto-recuperado.aulablocks', content: recovery.content, filters: [{ name: 'Proyecto AulaBlocks', extensions: ['aulablocks'] }] });
+    if (!result.canceled) openModal('Copia recuperada', 'La copia quedó guardada. Usa Abrir para revisarla; tu proyecto actual no se ha reemplazado.', '✓');
+  } catch (error) { openModal('No se pudo recuperar', error.message, '!'); }
+}
 
 let updateDownloadAsked = false;
 let manualUpdateCheckPending = false;
@@ -478,132 +529,6 @@ function createStarterProgram() {
   loop.render();
 }
 
-function loadAlarmTemplate() {
-  workspace.clear();
-  clearProjectExtensions();
-  registerExtension({
-    id: 'pack-alarma',
-    name: 'Componentes de alarma',
-    version: '1.0.0',
-    icon: '🛡️',
-    blockTypes: ['lcd_print', 'keypad_password_ok', 'rfid_uid_matches', 'pir_motion', 'button_pressed'],
-    libraries: [
-      { name: 'Keypad', version: '3.1.1' },
-      { name: 'LiquidCrystal I2C', version: '1.1.2' },
-      { name: 'MFRC522', version: '1.4.12' }
-    ]
-  }, true);
-  rebuildToolbox();
-  document.querySelector('#project-name').value = 'Sistema de alarma inteligente';
-  selectBoard('mega');
-  const setup = createBlock('arduino_setup', 30, 30);
-  const ready = createBlock('lcd_print');
-  connectText(ready, 'VALUE', 'Sistema listo');
-  ready.setFieldValue('0', 'COL');
-  ready.setFieldValue('0', 'ROW');
-  setup.getInput('DO').connection.connect(ready.previousConnection);
-
-  const loop = createBlock('arduino_loop', 30, 235);
-  const decision = createBlock('controls_if');
-  decision.loadExtraState({ elseIfCount: 2, hasElse: false });
-  decision.render();
-  loop.getInput('DO').connection.connect(decision.previousConnection);
-
-  const password = createBlock('keypad_password_ok');
-  connectText(password, 'PASSWORD', '1234');
-  decision.getInput('IF0').connection.connect(password.outputConnection);
-  const passwordLcd = createBlock('lcd_print');
-  connectText(passwordLcd, 'VALUE', 'Clave correcta');
-  decision.getInput('DO0').connection.connect(passwordLcd.previousConnection);
-
-  const card = createBlock('rfid_uid_matches');
-  card.setFieldValue('53', 'SS');
-  card.setFieldValue('49', 'RST');
-  connectText(card, 'UID', 'DE AD BE EF');
-  decision.getInput('IF1').connection.connect(card.outputConnection);
-  const cardLcd = createBlock('lcd_print');
-  cardLcd.setFieldValue('1', 'ROW');
-  connectText(cardLcd, 'VALUE', 'Tarjeta valida');
-  decision.getInput('DO1').connection.connect(cardLcd.previousConnection);
-
-  const trigger = createBlock('logic_operation');
-  trigger.setFieldValue('OR', 'OP');
-  const pir = createBlock('pir_motion');
-  pir.setFieldValue('30', 'PIN');
-  const panic = createBlock('button_pressed');
-  panic.setFieldValue('31', 'PIN');
-  panic.setFieldValue('PULLUP', 'WIRING');
-  trigger.getInput('A').connection.connect(pir.outputConnection);
-  trigger.getInput('B').connection.connect(panic.outputConnection);
-  decision.getInput('IF2').connection.connect(trigger.outputConnection);
-  const alarmLcd = createBlock('lcd_print');
-  connectText(alarmLcd, 'VALUE', 'ALARMA!');
-  const buzzer = createBlock('buzzer_tone');
-  buzzer.setFieldValue('6', 'PIN');
-  connectNumber(buzzer, 'FREQ', 880);
-  connectNumber(buzzer, 'TIME', 400);
-  const relay = createBlock('relay_set');
-  relay.setFieldValue('7', 'PIN');
-  relay.setFieldValue('ON', 'STATE');
-  decision.getInput('DO2').connection.connect(alarmLcd.previousConnection);
-  alarmLcd.nextConnection.connect(buzzer.previousConnection);
-  buzzer.nextConnection.connect(relay.previousConnection);
-  workspace.zoomToFit();
-  updateCode();
-  showToast('Proyecto de alarma cargado · recomendado para Arduino Mega');
-}
-
-function loadLineTemplate() {
-  workspace.clear();
-  clearProjectExtensions();
-  registerExtension({
-    id: 'pack-seguidor-linea',
-    name: 'Sensor seguidor de línea',
-    version: '1.0.0',
-    icon: '🏎️',
-    blockTypes: ['line_sensor']
-  }, true);
-  rebuildToolbox();
-  document.querySelector('#project-name').value = 'Auto seguidor de línea';
-  selectBoard('uno');
-  createBlock('arduino_setup', 30, 30);
-  const loop = createBlock('arduino_loop', 30, 210);
-  const decision = createBlock('controls_if');
-  decision.loadExtraState({ elseIfCount: 2, hasElse: true });
-  decision.render();
-  loop.getInput('DO').connection.connect(decision.previousConnection);
-
-  const both = createBlock('logic_operation');
-  both.setFieldValue('AND', 'OP');
-  both.getInput('A').connection.connect(createLineSensor('2').outputConnection);
-  both.getInput('B').connection.connect(createLineSensor('4').outputConnection);
-  decision.getInput('IF0').connection.connect(both.outputConnection);
-  decision.getInput('DO0').connection.connect(createRobotMove('FORWARD', 165).previousConnection);
-
-  decision.getInput('IF1').connection.connect(createLineSensor('2').outputConnection);
-  decision.getInput('DO1').connection.connect(createRobotMove('LEFT', 150).previousConnection);
-  decision.getInput('IF2').connection.connect(createLineSensor('4').outputConnection);
-  decision.getInput('DO2').connection.connect(createRobotMove('RIGHT', 150).previousConnection);
-  decision.getInput('ELSE').connection.connect(createRobotMove('STOP', 0).previousConnection);
-  workspace.zoomToFit();
-  updateCode();
-  showToast('Proyecto de auto seguidor cargado');
-}
-
-function createLineSensor(pin) {
-  const sensor = createBlock('line_sensor');
-  sensor.setFieldValue(pin, 'PIN');
-  sensor.setFieldValue('BLACK', 'SURFACE');
-  return sensor;
-}
-
-function createRobotMove(action, speed) {
-  const motor = createBlock('robot_drive');
-  motor.setFieldValue(action, 'ACTION');
-  connectNumber(motor, 'SPEED', speed);
-  return motor;
-}
-
 function createBlock(type, x, y) {
   const block = workspace.newBlock(type);
   block.initSvg();
@@ -618,27 +543,12 @@ function connectNumber(parent, inputName, number) {
   parent.getInput(inputName).connection.connect(numberBlock.outputConnection);
 }
 
-function connectText(parent, inputName, text) {
-  const textBlock = createBlock('text');
-  textBlock.setFieldValue(text, 'TEXT');
-  parent.getInput(inputName).connection.connect(textBlock.outputConnection);
-}
-
-function selectBoard(value) {
-  const select = document.querySelector('#board-select');
-  select.value = value;
-  document.querySelector('#board-label').textContent = select.selectedOptions[0].text;
-  updateBoardControls();
-}
-
 function updateBoardControls() {
   const board = document.querySelector('#board-select').value;
-  const directSupported = board === 'uno' || board === 'nano';
-  document.querySelector('.board-illustration b').textContent = board === 'nano' ? 'NANO' : board.toUpperCase();
-  document.querySelector('#board-status').textContent = directSupported ? 'Carga directa disponible' : 'Solo exportación .ino';
-  document.querySelector('#compile-direct').disabled = isBuilding || !directSupported;
-  document.querySelector('#upload-direct').disabled = isBuilding || !directSupported;
-  if (!directSupported) setUploadStatus('La carga directa está disponible para Uno y Nano ATmega328PB.', 'idle');
+  document.querySelector('.board-illustration b').textContent = board === 'nano' ? 'NANO' : 'UNO';
+  document.querySelector('#board-status').textContent = 'Carga directa disponible';
+  document.querySelector('#compile-direct').disabled = isBuilding;
+  document.querySelector('#upload-direct').disabled = isBuilding;
 }
 
 async function refreshArduinoPorts() {
@@ -700,6 +610,7 @@ function updateMonitorPortLabel() {
 }
 
 async function startSerialMonitor() {
+  if (isBuilding) return openModal('Espera a que termine', 'No abras el monitor mientras se comprueba o carga el programa.', '!');
   if (!window.aulaBlocks?.startSerialMonitor) return openModal('Abre AulaBlocks instalado', 'El Monitor serial funciona desde la aplicación de escritorio.', '📟');
   const port = document.querySelector('#port-select').value;
   if (!port) return openModal('Conecta tu Arduino', 'Pulsa buscar y selecciona el puerto USB antes de iniciar el monitor.', '🔌');
@@ -741,6 +652,7 @@ function appendSerialData(chunk) {
   serialPending += String(chunk || '').replace(/\r/g, '');
   const pieces = serialPending.split('\n');
   serialPending = pieces.pop() || '';
+  serialPending = serialPending.slice(-4000);
   for (const line of pieces) {
     const clean = line.trim();
     if (!clean) continue;
@@ -749,7 +661,12 @@ function appendSerialData(chunk) {
     const numeric = clean.match(/-?\d+(?:[.,]\d+)?/);
     document.querySelector('#monitor-latest').textContent = numeric ? numeric[0] : clean.slice(0, 24);
   }
-  document.querySelector('#serial-monitor-log').textContent = serialLines.length ? serialLines.join('\n') : 'Esperando datos de Arduino…';
+  const visibleLines = [...serialLines, ...(serialPending ? [serialPending] : [])];
+  document.querySelector('#serial-monitor-log').textContent = visibleLines.length ? visibleLines.join('\n') : 'Esperando datos de Arduino…';
+  if (serialPending) {
+    const numeric = serialPending.match(/-?\d+(?:[.,]\d+)?/);
+    document.querySelector('#monitor-latest').textContent = numeric ? numeric[0] : serialPending.slice(0, 24);
+  }
   const log = document.querySelector('#serial-monitor-log');
   log.scrollTop = log.scrollHeight;
 }
@@ -801,15 +718,15 @@ function sharpenBlocklyControls() {
 }
 
 async function runArduino(upload) {
+  if (isBuilding) return;
   const issue = projectIssue();
   if (issue) return openModal(issue.title, issue.message, '!');
   if (!window.aulaBlocks?.buildArduino) return openModal('Abre AulaBlocks instalado', 'La compilación y carga USB se realizan desde la aplicación de escritorio.', '!');
   const board = document.querySelector('#board-select').value;
-  if (!['uno', 'nano'].includes(board)) return openModal('Placa sin carga directa', 'Por ahora puedes cargar directamente Arduino Uno y Nano ATmega328PB. Para Mega, guarda el archivo .ino.', '!');
   const port = document.querySelector('#port-select').value;
   if (upload && !port) return openModal('Conecta tu Arduino', 'Conecta la placa por USB, pulsa buscar y selecciona el puerto antes de cargar.', '🔌');
 
-  updateCode();
+  if (!updateCode()) return openModal('Revisa el programa', generationError, '!');
   isBuilding = true;
   updateBoardControls();
   document.querySelector('#refresh-ports').disabled = true;
@@ -825,9 +742,10 @@ async function runArduino(upload) {
       code: document.querySelector('#code-output').textContent
     });
     setUploadStatus(result.message, result.ok ? 'success' : 'error');
-    document.querySelector('#upload-log').textContent = result.details || 'Sin detalles adicionales.';
-    document.querySelector('#upload-details').open = !result.ok;
-    openModal(result.title, result.message, result.ok ? '✓' : '!');
+    const warning = legacyPinWarning();
+    document.querySelector('#upload-log').textContent = [warning, result.details || 'Sin detalles adicionales.'].filter(Boolean).join('\n');
+    document.querySelector('#upload-details').open = !result.ok || Boolean(warning);
+    openModal(result.title, [result.message, warning].filter(Boolean).join(' '), result.ok ? '✓' : '!');
   } catch (error) {
     setUploadStatus(error.message || 'No pudimos completar la operación.', 'error');
     openModal('No pudimos completarlo', error.message || 'Ocurrió un error inesperado.', '!');
@@ -851,8 +769,12 @@ function updateCode() {
     const code = generateSketch(workspace, extensions);
     document.querySelector('#code-output').textContent = code;
     updateLibraryNote(code);
+    generationError = '';
+    return true;
   } catch (error) {
+    generationError = error.message;
     document.querySelector('#code-output').textContent = `// Revisa los bloques sin conectar.\n// ${error.message}`;
+    return false;
   }
 }
 
@@ -875,7 +797,7 @@ function updateLibraryNote(code) {
     if (extension.libraries?.length) names.push(...extension.libraries.map((library) => library.name || library));
     else names.push(extension.name);
   }
-  document.querySelector('#library-note p').textContent = names.length ? names.join(', ') : 'Ninguna librería externa en este proyecto.';
+  document.querySelector('#library-note p').textContent = [names.length ? names.join(', ') : 'Ninguna librería externa en este proyecto.', legacyPinWarning()].filter(Boolean).join(' ');
 }
 
 async function newProject() {
@@ -899,15 +821,19 @@ async function newProject() {
 function projectData() {
   return {
     format: 'aulablocks-project',
-    version: 1,
+    version: 2,
     name: document.querySelector('#project-name').value.trim() || 'Mi proyecto',
     board: document.querySelector('#board-select').value,
+    requiredSensors: extensions.map((extension) => ({ id: extension.id, name: extension.name, version: extension.version || '1.0.0' })),
+    // Se conserva una copia para que proyectos antiguos sigan siendo legibles,
+    // pero al abrir en escritorio se usa siempre el paquete realmente instalado.
     extensions,
     workspace: Blockly.serialization.workspaces.save(workspace)
   };
 }
 
 async function saveProject() {
+  try {
   const data = JSON.stringify(projectData(), null, 2);
   const defaultName = `${fileSafeName(document.querySelector('#project-name').value)}.aulablocks`;
   const result = await saveText({
@@ -916,9 +842,10 @@ async function saveProject() {
   });
   if (!result.canceled) {
     currentPath = result.path || currentPath;
-    hasUnsavedChanges = false;
-    showToast('Proyecto guardado');
+    hasUnsavedChanges = JSON.stringify(projectData(), null, 2) !== data;
+    showToast(hasUnsavedChanges ? 'Copia guardada. Hay cambios posteriores pendientes de guardar.' : 'Proyecto guardado');
   }
+  } catch (error) { openModal('No se pudo guardar', 'Tus bloques siguen abiertos. Elige otra carpeta y vuelve a guardar. ' + error.message, '!'); }
 }
 
 async function openProject() {
@@ -938,6 +865,29 @@ async function openProject() {
     if (!proceed) return;
   }
 
+  await loadSensorCatalog();
+  const requirements = data.requiredSensors || (data.extensions || []).map((extension) => ({ id: extension.id, name: extension.name, version: extension.version || '1.0.0' }));
+  const installedById = new Map(sensorCatalog.map((sensor) => [sensor.id, sensor]));
+  const missing = requirements.filter((requirement) => !installedById.has(requirement.id));
+  const outdated = requirements.filter((requirement) => {
+    const installed = installedById.get(requirement.id);
+    return installed && compareVersions(installed.version, requirement.version) < 0;
+  });
+  if (window.aulaBlocks && (missing.length || outdated.length)) {
+    const details = [
+      ...missing.map((item) => `${item.name || item.id} (no instalado)`),
+      ...outdated.map((item) => `${item.name || item.id} (necesita v${item.version} o superior)`)
+    ];
+    openModal('Faltan sensores del proyecto', `Instala o actualiza estos paquetes desde “Biblioteca de sensores” antes de abrir el proyecto: ${details.join(', ')}. Así también quedarán instaladas sus bibliotecas.`, '!');
+    return;
+  }
+  try {
+    for (const old of data.extensions || []) {
+      const installed = installedById.get(old.id);
+      if (installed) assertCompatibleSensor(old, installed);
+    }
+  } catch (error) { openModal('Sensor incompatible con el proyecto', error.message, '!'); return; }
+
   const previousState = {
     extensions,
     workspaceState: Blockly.serialization.workspaces.save(workspace),
@@ -949,11 +899,15 @@ async function openProject() {
   try {
     workspace.clear();
     clearProjectExtensions();
-    for (const extension of data.extensions || []) registerExtension(extension, false);
+    for (const requirement of requirements) {
+      const installed = installedById.get(requirement.id);
+      const embedded = (data.extensions || []).find((extension) => extension.id === requirement.id);
+      registerExtension(installed || embedded, false);
+    }
     rebuildToolbox();
     Blockly.serialization.workspaces.load(data.workspace, workspace);
     document.querySelector('#project-name').value = data.name || 'Mi proyecto';
-    document.querySelector('#board-select').value = data.board || 'uno';
+    document.querySelector('#board-select').value = ['uno', 'nano'].includes(data.board) ? data.board : 'uno';
     document.querySelector('#board-label').textContent = document.querySelector('#board-select').selectedOptions[0].text;
     updateBoardControls();
     currentPath = result.path || null;
@@ -976,8 +930,19 @@ async function openProject() {
   }
 }
 
+function compareVersions(left, right) {
+  const a = String(left || '0').split('.').map((part) => Number(part) || 0);
+  const b = String(right || '0').split('.').map((part) => Number(part) || 0);
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    if ((a[index] || 0) !== (b[index] || 0)) return (a[index] || 0) > (b[index] || 0) ? 1 : -1;
+  }
+  return 0;
+}
+
 async function exportIno() {
-  updateCode();
+  const issue = projectIssue();
+  if (issue) return openModal(issue.title, issue.message, '!');
+  if (!updateCode()) return openModal('No se puede exportar', generationError, '!');
   const result = await saveText({
     title: 'Guardar programa para Arduino',
     defaultPath: `${fileSafeName(document.querySelector('#project-name').value)}.ino`,
@@ -988,9 +953,28 @@ async function exportIno() {
 }
 
 async function importExtension() {
-  const result = await openText({ title: 'Añadir un paquete de sensor', accept: '.aulasensor,.ardublock.json,application/json', filters: [{ name: 'Sensor AulaBlocks', extensions: ['aulasensor', 'json'] }], maxBytes: 40 * 1024 * 1024 });
+  const result = await openText({ title: 'Añadir sensores (puedes seleccionar varios con Ctrl)', multiple: true, accept: '.aulasensor,.ardublock.json,application/json', filters: [{ name: 'Sensor AulaBlocks', extensions: ['aulasensor', 'json'] }], maxBytes: 40 * 1024 * 1024 });
   if (result.canceled) return;
   try {
+    if (result.files?.length > 1) {
+      const packages = result.files.map((file) => JSON.parse(file.content));
+      const owners = new Map(extensionTypeOwners);
+      const definitions = { ...Blockly.Blocks };
+      for (const item of packages) {
+        validateExtensionRegistration(item, definitions, owners);
+        for (const block of item.blocks || []) {
+          definitions[block.type] = block;
+          owners.set(block.type, item.id);
+        }
+      }
+      const installed = await window.aulaBlocks.installSensorPackages(packages);
+      for (const item of installed) registerExtension(item.extension, true);
+      await loadSensorCatalog();
+      rebuildToolbox();
+      updateCode();
+      openModal('Sensores instalados', 'Se instalaron juntos los paquetes y sus bibliotecas: ' + installed.map((item) => item.extension.name).join(', ') + '.', '🧩');
+      return;
+    }
     let extension = JSON.parse(result.content);
     validateExtension(extension);
     let installedLibraries = [];
@@ -1359,6 +1343,7 @@ function confirmSensorRemoval() {
     extensionTypeOwners.delete(definition.type);
   }
   extensions = extensions.filter((item) => item.id !== id);
+  hasUnsavedChanges = true;
   rebuildToolbox();
   updateCode();
   renderSensorCatalog();
@@ -1368,20 +1353,14 @@ function confirmSensorRemoval() {
 }
 
 function validateExtension(extension) {
-  const hasDefinitions = Array.isArray(extension.blocks) && extension.blocks.length > 0;
-  const hasKnownTypes = Array.isArray(extension.blockTypes) && extension.blockTypes.length > 0;
-  if (!extension.id || !extension.name || (!hasDefinitions && !hasKnownTypes)) throw new Error('La extensión debe tener id, nombre y al menos un bloque.');
-  for (const block of extension.blocks || []) {
-    if (!block.type || !block.message0 || typeof block.code !== 'string') throw new Error('Cada bloque necesita type, message0 y code.');
-    if (Blockly.Blocks[block.type] && extensionTypeOwners.get(block.type) !== extension.id) throw new Error(`El bloque ${block.type} ya existe.`);
-  }
-  for (const type of extension.blockTypes || []) {
-    if (!Blockly.Blocks[type]) throw new Error(`El bloque conocido ${type} no está disponible en esta versión.`);
-  }
+  validateExtensionRegistration(extension, Blockly.Blocks, extensionTypeOwners);
 }
 
 function registerExtension(extension, addToList) {
+  validateExtension(extension);
   const existingIndex = extensions.findIndex((item) => item.id === extension.id);
+  if (existingIndex >= 0) assertCompatibleSensor(extensions[existingIndex], extension);
+  hasUnsavedChanges = true;
   const previousOwnedTypes = new Set([...extensionTypeOwners].filter(([, owner]) => owner === extension.id).map(([type]) => type));
   for (const type of previousOwnedTypes) delete Blockly.Blocks[type];
   const definitions = (extension.blocks || []).map((block) => ({
@@ -1440,6 +1419,7 @@ function renderExtensions() {
 }
 
 async function copyCode() {
+  if (!updateCode()) return openModal('No se puede copiar', generationError, '!');
   await navigator.clipboard.writeText(document.querySelector('#code-output').textContent);
   showToast('Código copiado');
 }
@@ -1448,63 +1428,33 @@ function checkProject() {
   const issue = projectIssue();
   if (issue) return openModal(issue.title, issue.message, '!');
   const blocks = workspace.getAllBlocks(false);
-  openModal('Estructura de bloques ordenada', `Tu proyecto tiene ${blocks.length} bloques bien conectados y sin errores de armado. Esto no significa que el programa compile: pulsa “✓ Comprobar” para probarlo con el compilador de Arduino antes de cargarlo a la placa.`, '✓');
+  openModal('Estructura de bloques ordenada', `Tu proyecto tiene ${blocks.length} bloques bien conectados y sin errores de armado. Esto no significa que el programa compile: pulsa “✓ Comprobar” para probarlo con el compilador de Arduino antes de cargarlo a la placa. ${legacyPinWarning()}`, '✓');
+}
+
+function legacyPinWarning() {
+  const result = findPinIssues(workspace.getAllBlocks(false).filter(isExecutableBlock), extensions, document.querySelector('#board-select').value);
+  return result.unknown.length ? 'Hay sensores antiguos sin información de pines. Revisa sus conexiones manualmente; puedes seguir compilando y cargando.' : '';
 }
 
 function projectIssue() {
-  const blocks = workspace.getAllBlocks(false);
+  try { assertConnectionTypes(workspace); }
+  catch (error) { return { title: 'Bloques incompatibles', message: error.message }; }
+  const blocks = workspace.getAllBlocks(false).filter(isExecutableBlock);
   const setupCount = blocks.filter((block) => block.type === 'arduino_setup').length;
   const loopCount = blocks.filter((block) => block.type === 'arduino_loop').length;
-  const loose = workspace.getTopBlocks(false).filter((block) => !['arduino_setup', 'arduino_loop'].includes(block.type));
+  const loose = workspace.getTopBlocks(false).filter((block) => isExecutableBlock(block) && !['arduino_setup', 'arduino_loop'].includes(block.type));
   const board = document.querySelector('#board-select').value;
-  const invalidPins = findPinsOutsideBoard(board);
-  const pinConflicts = findPinConflicts();
+  const pinIssues = findPinIssues(blocks, extensions, board);
   if (!setupCount || !loopCount) return { title: 'Falta un bloque de inicio', message: 'Todo proyecto necesita “al encender Arduino” y “repetir siempre”. Puedes encontrarlos en la categoría Inicio.' };
+  if (setupCount > 1 || loopCount > 1) return { title: 'Hay inicios repetidos', message: 'Usa un solo bloque “al encender Arduino” y un solo “repetir siempre”.' };
+  if (pinIssues.timerConflicts.length) return { title: 'Servo y PWM usan el mismo temporizador', message: 'Al usar Servo, no regules motores o brillo con PWM en los pines 9 o 10. Cambia esa salida PWM a 3, 5, 6 u 11 y revisa que el pin esté libre.' };
   if (loose.length) return { title: 'Hay bloques sueltos', message: `Encontramos ${loose.length} bloque${loose.length > 1 ? 's' : ''} sin conectar. Únelos a un bloque de Inicio para que Arduino los ejecute.` };
-  if (invalidPins.length) return { title: 'Revisa la placa seleccionada', message: `Estos pines no existen en ${document.querySelector('#board-select').selectedOptions[0].text}: ${[...new Set(invalidPins)].join(', ')}. Cambia los pines o selecciona una placa con más conexiones.` };
-  if (pinConflicts.length) return { title: 'Dos componentes usan el mismo pin', message: `El pin ${pinConflicts[0].pin} está conectado a más de un tipo de componente a la vez (${pinConflicts[0].types.join(', ')}). Dos componentes no pueden compartir el mismo pin: cambia uno de ellos.` };
+  if (pinIssues.invalid.length) return { title: 'Revisa los pines', message: `Estos pines no existen o no admiten la función elegida en ${document.querySelector('#board-select').selectedOptions[0].text}: ${[...new Set(pinIssues.invalid.map((item) => item.pin))].join(', ')}. Revisa las conexiones y la placa.` };
+  if (pinIssues.conflicts.length) {
+    const conflict = pinIssues.conflicts[0];
+    return { title: 'Dos conexiones usan el mismo pin', message: `El pin ${conflict.pin} está asignado a ${conflict.claims.map((claim) => claim.label).join(' y ')}. Cambia una conexión. Los sensores I2C sí pueden compartir SDA y SCL.` };
+  }
   return null;
-}
-
-function findPinsOutsideBoard(board) {
-  if (board === 'mega') return [];
-  const pinFields = ['PIN', 'TRIG', 'ECHO', 'IN1', 'IN2', 'IN3', 'IN4', 'PWM', 'ENA', 'ENB', 'SS', 'RST', 'R1', 'R2', 'R3', 'R4', 'C1', 'C2', 'C3', 'C4'];
-  const invalid = [];
-  for (const block of workspace.getAllBlocks(false)) {
-    for (const field of pinFields) {
-      const raw = block.getFieldValue(field);
-      if (raw && /^\d+$/.test(raw) && Number(raw) > 19) invalid.push(raw);
-    }
-  }
-  return invalid;
-}
-
-const PIN_FIELDS_BY_BLOCK_TYPE = {
-  digital_write: ['PIN'], analog_write: ['PIN'], digital_read: ['PIN'], analog_read: ['PIN'],
-  servo_write: ['PIN'], motor_drive: ['IN1', 'IN2', 'PWM'], ultrasonic_read: ['TRIG', 'ECHO'],
-  dht_read: ['PIN'], buzzer_tone: ['PIN'], rgb_pixel: ['PIN'], button_pressed: ['PIN'],
-  pir_motion: ['PIN'], line_sensor: ['PIN'], obstacle_sensor: ['PIN'], tilt_sensor: ['PIN'],
-  analog_sensor: ['PIN'], thermistor_celsius: ['PIN'], joystick_axis: ['PIN'], relay_set: ['PIN'],
-  robot_drive: ['ENA', 'IN1', 'IN2', 'ENB', 'IN3', 'IN4'], stepper_move: ['IN1', 'IN2', 'IN3', 'IN4'],
-  rfid_card_present: ['SS', 'RST'], rfid_uid_matches: ['SS', 'RST'], rfid_uid_text: ['SS', 'RST'],
-  keypad_key: ['R1', 'R2', 'R3', 'R4', 'C1', 'C2', 'C3', 'C4'], keypad_password_ok: ['R1', 'R2', 'R3', 'R4', 'C1', 'C2', 'C3', 'C4']
-};
-
-function findPinConflicts() {
-  const claims = new Map();
-  for (const block of workspace.getAllBlocks(false)) {
-    const fields = PIN_FIELDS_BY_BLOCK_TYPE[block.type];
-    if (!fields) continue;
-    for (const field of fields) {
-      const raw = block.getFieldValue(field);
-      if (!raw || !/^\d+$/.test(raw)) continue;
-      if (!claims.has(raw)) claims.set(raw, new Set());
-      claims.get(raw).add(block.type);
-    }
-  }
-  const conflicts = [];
-  for (const [pin, types] of claims) if (types.size > 1) conflicts.push({ pin, types: [...types] });
-  return conflicts;
 }
 
 function openModal(title, message, symbol) {

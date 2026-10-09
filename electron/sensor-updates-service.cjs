@@ -12,7 +12,7 @@ function compareVersions(a, b) {
   return 0;
 }
 
-function createSensorUpdatesService({ listInstalledSensors, installSensorPackage }) {
+function createSensorUpdatesService({ listInstalledSensors, installSensorPackages }) {
   async function fetchCatalog() {
     const response = await fetch(CATALOG_URL, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new Error(`No se pudo leer el catálogo de sensores (código ${response.status}).`);
@@ -53,21 +53,20 @@ function createSensorUpdatesService({ listInstalledSensors, installSensorPackage
     const response = await fetch(rawUrl, { signal: AbortSignal.timeout(30000) });
     if (!response.ok) throw new Error(`No se pudo descargar ${entry.name} (código ${response.status}).`);
     const sensorPackage = await response.json();
-    const installed = await installSensorPackage(sensorPackage);
-    return installed.extension;
+    if (sensorPackage.id !== entry.id || (entry.remoteVersion && sensorPackage.version !== entry.remoteVersion)) throw new Error('El paquete descargado no coincide con el catálogo.');
+    return sensorPackage;
   }
 
   async function installUpdates(entries) {
-    const results = [];
-    for (const entry of entries) {
-      try {
-        const extension = await installUpdate(entry);
-        results.push({ id: entry.id, name: entry.name, ok: true, extension });
-      } catch (error) {
-        results.push({ id: entry.id, name: entry.name, ok: false, message: error.message });
-      }
+    if (!entries.length) return [];
+    try {
+      const packages = [];
+      for (const entry of entries) packages.push(await installUpdate(entry));
+      const installed = await installSensorPackages(packages);
+      return entries.map((entry, index) => ({ id: entry.id, name: entry.name, ok: true, extension: installed[index].extension }));
+    } catch (error) {
+      return entries.map((entry) => ({ id: entry.id, name: entry.name, ok: false, message: error.message }));
     }
-    return results;
   }
 
   return { listCatalog, checkForUpdates, installUpdates };

@@ -46,11 +46,12 @@ for (const packager of ['arduino', 'MiniCore']) {
 await fs.cp(path.join(windowsRuntime, 'user'), path.join(linuxRuntime, 'user'), { recursive: true });
 
 const cli = {
-  url: 'https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz',
-  filename: 'arduino-cli_latest_Linux_64bit.tar.gz'
+  url: 'https://github.com/arduino/arduino-cli/releases/download/v1.5.1/arduino-cli_1.5.1_Linux_64bit.tar.gz',
+  filename: 'arduino-cli_1.5.1_Linux_64bit.tar.gz',
+  checksum: 'SHA-256:28a8e119c498a25607821c36cb2dc49e8463941b261a0d99091baa7bc692dd2b'
 };
 const cliArchive = path.join(downloads, cli.filename);
-await download(cli.url, cliArchive);
+await download(cli.url, cliArchive, cli.checksum);
 await extract(cliArchive, path.join(linuxRuntime, 'bin'));
 
 for (const [packager, name, version] of requiredTools) {

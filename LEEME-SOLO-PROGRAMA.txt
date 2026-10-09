@@ -1,26 +1,9 @@
-AULABLOCKS - CODIGO FUENTE PARA REVISION
+AulaBlocks principal
+====================
 
-Esta copia contiene solamente el programa AulaBlocks.
+El instalador principal contiene el editor por bloques, Arduino CLI y soporte
+para Arduino Uno ATmega328P y Nano ATmega328PB. Los sensores se distribuyen
+por separado como paquetes .aulasensor y se guardan en la Biblioteca del PC.
 
-Incluye:
-- interfaz Blockly;
-- generador de codigo Arduino;
-- aplicacion Electron;
-- compilacion y carga directa;
-- monitor serial;
-- sistema que permite instalar posteriormente archivos .aulasensor;
-- pruebas generales del programa;
-- informe y prompt para otra inteligencia artificial.
-
-No incluye:
-- archivos .aulasensor;
-- bibliotecas de sensores;
-- ejemplos de sensores;
-- catalogo web de sensores;
-- instaladores compilados;
-- Arduino CLI ni compiladores incorporados;
-- node_modules.
-
-Por lo anterior, esta copia sirve para revisar el codigo fuente. Para ejecutarla
-o construirla se deben restaurar las dependencias indicadas en package.json.
-Los sensores deben instalarse posteriormente desde el boton "Anadir sensor".
+El repositorio sí contiene el catálogo de paquetes para poder probarlos y
+publicarlos, pero ninguno se instala automáticamente con el programa.

@@ -4,11 +4,14 @@ const appVersion = appVersionArg ? appVersionArg.slice('--app-version='.length) 
 
 contextBridge.exposeInMainWorld('aulaBlocks', {
   saveFile: (options) => ipcRenderer.invoke('save-file', options),
+  readRecovery: () => ipcRenderer.invoke('project-recovery-read'),
+  saveRecovery: (content) => ipcRenderer.invoke('project-recovery-save', content),
   openFile: (options) => ipcRenderer.invoke('open-file', options),
   listArduinoPorts: () => ipcRenderer.invoke('arduino-list-ports'),
   installCh340Driver: () => ipcRenderer.invoke('driver-install-ch340'),
   listSensorCatalog: () => ipcRenderer.invoke('sensor-catalog-list'),
   installSensorPackage: (sensorPackage) => ipcRenderer.invoke('sensor-package-install', sensorPackage),
+  installSensorPackages: (packages) => ipcRenderer.invoke('sensor-packages-install', packages),
   buildArduino: (options) => ipcRenderer.invoke('arduino-build', options),
   startSerialMonitor: (options) => ipcRenderer.invoke('serial-monitor-start', options),
   stopSerialMonitor: () => ipcRenderer.invoke('serial-monitor-stop'),

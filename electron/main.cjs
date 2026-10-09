@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { saveSafely, validateProject, readRecovery } = require('./project-storage.cjs');
 const { createArduinoService } = require('./arduino-service.cjs');
 const { installCh340Driver } = require('./driver-service.cjs');
 const { createUpdaterService } = require('./updater-service.cjs');
@@ -10,6 +11,7 @@ function arduinoRuntimeRoot() {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, 'arduino-runtime');
   }
+  if (process.env.AULABLOCKS_ARDUINO_RUNTIME) return path.resolve(process.env.AULABLOCKS_ARDUINO_RUNTIME);
   const folder = process.platform === 'linux' ? 'arduino-cli-linux' : 'arduino-cli';
   return path.join(__dirname, '..', 'tools', folder);
 }
@@ -65,13 +67,12 @@ function arduinoService() {
 
 let mainWindow = null;
 let allowWindowClose = false;
-let closeTimeoutId = null;
 
 function sensorUpdatesService() {
   if (sensorUpdatesService.instance) return sensorUpdatesService.instance;
   sensorUpdatesService.instance = createSensorUpdatesService({
     listInstalledSensors: () => arduinoService().listSensorCatalog(),
-    installSensorPackage: (sensorPackage) => arduinoService().installSensorPackage(sensorPackage)
+    installSensorPackages: (packages) => arduinoService().installSensorPackages(packages)
   });
   return sensorUpdatesService.instance;
 }
@@ -119,11 +120,6 @@ function createWindow() {
     if (allowWindowClose) return;
     event.preventDefault();
     win.webContents.send('request-app-close');
-    clearTimeout(closeTimeoutId);
-    closeTimeoutId = setTimeout(() => {
-      allowWindowClose = true;
-      win.close();
-    }, 4000);
   });
   mainWindow = win;
 }
@@ -135,17 +131,28 @@ ipcMain.handle('save-file', async (_event, options) => {
     filters: options.filters
   });
   if (result.canceled || !result.filePath) return { canceled: true };
-  await fs.writeFile(result.filePath, options.content, 'utf8');
+  await saveSafely(result.filePath, options.content);
   return { canceled: false, path: result.filePath };
 });
 
 ipcMain.handle('open-file', async (_event, options) => {
   const result = await dialog.showOpenDialog({
     title: options.title,
-    properties: ['openFile'],
+    properties: options.multiple ? ['openFile', 'multiSelections'] : ['openFile'],
     filters: options.filters
   });
   if (result.canceled || !result.filePaths[0]) return { canceled: true };
+  if (options.multiple) {
+    const files = [];
+    let totalBytes = 0;
+    for (const filePath of result.filePaths) {
+      const stats = await fs.stat(filePath);
+      totalBytes += stats.size;
+      if (stats.size > 40 * 1024 * 1024 || totalBytes > 100 * 1024 * 1024) throw new Error('Los paquetes seleccionados superan el límite de tamaño.');
+      files.push({ path: filePath, content: await fs.readFile(filePath, 'utf8') });
+    }
+    return { canceled: false, ...files[0], files };
+  }
   const filePath = result.filePaths[0];
   const maxBytes = Number(options.maxBytes) > 0 ? Number(options.maxBytes) : 40 * 1024 * 1024;
   const stats = await fs.stat(filePath);
@@ -162,7 +169,14 @@ ipcMain.handle('driver-install-ch340', async () => {
 });
 ipcMain.handle('arduino-list-ports', async () => arduinoService().listPorts());
 ipcMain.handle('sensor-catalog-list', async () => arduinoService().listSensorCatalog());
+ipcMain.handle('project-recovery-read', async () => readRecovery(path.join(app.getPath('userData'), 'recovery', 'last.aulablocks')));
+ipcMain.handle('project-recovery-save', async (_event, content) => {
+  validateProject(content);
+  await saveSafely(path.join(app.getPath('userData'), 'recovery', 'last.aulablocks'), content);
+  return { ok: true };
+});
 ipcMain.handle('sensor-package-install', async (_event, sensorPackage) => arduinoService().installSensorPackage(sensorPackage));
+ipcMain.handle('sensor-packages-install', async (_event, packages) => arduinoService().installSensorPackages(packages));
 ipcMain.handle('serial-monitor-start', async (event, payload) => arduinoService().startSerialMonitor(
   payload,
   (data) => { if (!event.sender.isDestroyed()) event.sender.send('serial-monitor-data', data); },
@@ -193,7 +207,6 @@ ipcMain.handle('update-install-now', async () => updaterService().installNow());
 ipcMain.handle('update-open-releases-page', async () => updaterService().openReleasesPage());
 
 ipcMain.on('app-close-decision', (_event, canClose) => {
-  clearTimeout(closeTimeoutId);
   if (!canClose || !mainWindow) return;
   allowWindowClose = true;
   mainWindow.close();

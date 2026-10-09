@@ -1,0 +1,2 @@
+# Keep package bytes stable so release SHA-256 checks survive Windows checkout.
+sensor-catalog/*.aulasensor text eol=lf

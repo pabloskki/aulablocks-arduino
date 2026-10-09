@@ -1,0 +1,104 @@
+{
+  "target": "0.10.0-beta.5",
+  "sensors": [
+    {
+      "id": "actuador-servo-sg90",
+      "name": "Servo SG90 / MG90S",
+      "previousFile": "sensor-catalog/Servo-SG90-1.0.2.aulasensor",
+      "previousVersion": "1.0.2",
+      "version": "1.0.3",
+      "file": "Servo-SG90-1.0.3.aulasensor",
+      "sha256": "3b57a9672fda764b10f928b0fcec923e76653e9dc7be75d7f942b23b45df7db3"
+    },
+    {
+      "id": "encoder-motor-tt-hall-12ppr",
+      "name": "Motor TT Hall · encoder 12 PPR",
+      "previousFile": "sensor-catalog/Encoder-TT-Hall-12PPR-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "Encoder-TT-Hall-12PPR-1.0.2.aulasensor",
+      "sha256": "802e56491ea0f18e18503ac317d8d1304f0a34d957809553d2576dba66a2b0f8"
+    },
+    {
+      "id": "motor-controlador-tb6612fng",
+      "name": "TB6612FNG · controlador de motores",
+      "previousFile": "sensor-catalog/TB6612FNG-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "TB6612FNG-1.0.2.aulasensor",
+      "sha256": "22fe59be4dbbabbe958eb5533738f4dd80092e347067a0edb96d4cfb5aacd6b8"
+    },
+    {
+      "id": "sensor-linea-tcrt5000",
+      "name": "TCRT5000 · sensor de línea",
+      "previousFile": "sensor-catalog/TCRT5000-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "TCRT5000-1.0.2.aulasensor",
+      "sha256": "bb811028019aa18ba7de6f6ca8369c8528b4a5c136d5c889d4748e80a8d30599"
+    },
+    {
+      "id": "sensor-luz-fotoresistencia-ldr",
+      "name": "Fotoresistencia LDR · entrada analógica",
+      "previousFile": "sensor-catalog/Fotoresistencia-LDR-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "Fotoresistencia-LDR-1.0.2.aulasensor",
+      "sha256": "07feb05b909d7eb4a7f14b95a22962af28fa03a49338af714ee9bfa212762849"
+    },
+    {
+      "id": "sensor-movimiento-hc-sr501",
+      "name": "HC-SR501 · sensor PIR",
+      "previousFile": "sensor-catalog/HC-SR501-PIR-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "HC-SR501-PIR-1.0.2.aulasensor",
+      "sha256": "5ada3d51c22c57da6d9eec3031ec4a5ec021e0816965df2af4d8702e16f03bf0"
+    },
+    {
+      "id": "sensor-nfc-pn532-i2c",
+      "name": "Lector NFC PN532 · I2C · Adafruit",
+      "previousFile": "sensor-catalog/PN532-I2C-1.7.11.aulasensor",
+      "previousVersion": "1.7.11",
+      "version": "1.7.12",
+      "file": "PN532-I2C-1.7.12.aulasensor",
+      "sha256": "7658fa4e7e29aca8a0bc1180685fc502e7287c06496b966aaef82e2fca7596df"
+    },
+    {
+      "id": "sensor-obstaculos-fc51-flying-fish",
+      "name": "FC-51 / MH-B Flying Fish · obstáculos",
+      "previousFile": "sensor-catalog/FC-51-Flying-Fish-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "FC-51-Flying-Fish-1.0.2.aulasensor",
+      "sha256": "4dfa99f3871e27bfd8dc406929af8caee68b5dfb83e77de705cadc82019a6d1e"
+    },
+    {
+      "id": "sensor-temperatura-dht11",
+      "name": "DHT11 · temperatura y humedad",
+      "previousFile": "sensor-catalog/DHT11-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "DHT11-1.0.2.aulasensor",
+      "sha256": "86da988d5b4d54f16064a383916ca29b9058d7cfb11a8a4fe8cdf858b2fcf011"
+    },
+    {
+      "id": "sensor-temperatura-dht22",
+      "name": "DHT22 · temperatura y humedad",
+      "previousFile": "sensor-catalog/DHT22-1.0.1.aulasensor",
+      "previousVersion": "1.0.1",
+      "version": "1.0.2",
+      "file": "DHT22-1.0.2.aulasensor",
+      "sha256": "83978bea93b0ffef0f8529d5b6741bdfdb261d21f8b24f1a7bb1c9b1f8e4955f"
+    },
+    {
+      "id": "sensor-ultrasonico-hc-sr04",
+      "name": "Sensor ultrasónico HC-SR04",
+      "previousFile": "sensor-catalog/HC-SR04-1.4.1.aulasensor",
+      "previousVersion": "1.4.1",
+      "version": "1.4.2",
+      "file": "HC-SR04-1.4.2.aulasensor",
+      "sha256": "f426361913f1a0d4d2cbaee7a94bd38106eb85afdcc80f735c44631386da0290"
+    }
+  ]
+}

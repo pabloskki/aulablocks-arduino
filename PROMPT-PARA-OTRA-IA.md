@@ -22,6 +22,9 @@ Quiero que actúes como revisor técnico independiente de AulaBlocks, una aplica
 4. Registro y eliminación de bloques Blockly y sus generadores.
 5. Generación de C++ válido: nombres, tipos, precedencia, declaraciones duplicadas y dependencias.
 6. Conflictos y validación de pines para Uno y Nano ATmega328PB.
+   Cada bloque de sensor puede declarar `hardware.deviceKey` y
+   `hardware.pins`. Comprueba pines exclusivos, pines fijos, pines opcionales y
+   `sharedBus`; dos dispositivos I2C deben poder compartir A4/SDA y A5/SCL.
 7. Compilación, carga por USB, detección de puertos y monitor serial.
 8. Funcionamiento completamente sin Internet en un PC nuevo.
 9. Seguridad de Electron, IPC, archivos importados, imágenes y rutas de biblioteca.
@@ -48,12 +51,12 @@ No asumas que una compilación correcta demuestra que el hardware funciona. Sepa
 
 Antes de proponer una gran reescritura, prioriza correcciones pequeñas y verificables que conserven la interfaz educativa actual.
 
-## Observaciones iniciales que debes confirmar o refutar
+## Comprobaciones de regresión obligatorias
 
-- Abrir un proyecto defectuoso parece limpiar el proyecto actual antes de terminar la validación.
-- Actualizar un sensor puede dejar generadores de bloques antiguos.
-- El marcador fijo de bibliotecas puede impedir que una actualización copie bibliotecas corregidas.
-- Dos variables diferentes pueden convertirse en el mismo identificador C++.
-- El monitor serial puede liberar el puerto de forma asíncrona y competir con la carga.
-- La fuente declara una versión más nueva que el instalador publicado.
+- Un proyecto con sensores ausentes no debe reemplazar el proyecto abierto.
+- `(1 + 2) * 3` y `1 - (2 - 3)` deben conservar su agrupación en C++.
+- Un proyecto sin monitor no debe generar `Serial.begin`.
+- Un conflicto de biblioteca debe cancelar por completo la instalación.
+- Los bloqueos npm y pnpm deben corresponder a `package.json`.
+- La matriz de sensores debe generar código nuevo y completar 22 compilaciones.
 

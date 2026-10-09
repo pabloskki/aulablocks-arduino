@@ -4,5 +4,6 @@ release/
 tools/arduino-cli/
 tools/arduino-cli-linux/
 tools/.linux-runtime-downloads/
+tools/.runtime-downloads/
 *.log
 .claude/
