@@ -68,5 +68,5 @@
       "file": "sensor-catalog/HC-SR04-1.4.2.aulasensor"
     }
   ],
-  "releaseTarget": "0.10.0-beta.5"
+  "releaseTarget": "0.10.0"
 }
