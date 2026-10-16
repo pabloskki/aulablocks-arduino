@@ -1,0 +1,82 @@
+{
+  "target": "0.10.0",
+  "sensors": [
+    {
+      "id": "actuador-servo-sg90",
+      "previousFile": "sensor-catalog/Servo-SG90-1.0.3.aulasensor",
+      "file": "sensor-catalog/Servo-SG90-1.0.4.aulasensor",
+      "version": "1.0.4",
+      "sha256": "d0f58205409ed7ef81bf270849bf4907393e5bc830bc01a4786be77b13e663ce"
+    },
+    {
+      "id": "encoder-motor-tt-hall-12ppr",
+      "previousFile": "sensor-catalog/Encoder-TT-Hall-12PPR-1.0.2.aulasensor",
+      "file": "sensor-catalog/Encoder-TT-Hall-12PPR-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "a303724b91006ffcaf49de2dcd4ca30420a79803cbfa1eea233f7db12add7ca0"
+    },
+    {
+      "id": "motor-controlador-tb6612fng",
+      "previousFile": "sensor-catalog/TB6612FNG-1.0.2.aulasensor",
+      "file": "sensor-catalog/TB6612FNG-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "0606dfcc253d006042f445b638d7c3681382e8bd8c9e0f9975a2fa40fa181347"
+    },
+    {
+      "id": "sensor-linea-tcrt5000",
+      "previousFile": "sensor-catalog/TCRT5000-1.0.2.aulasensor",
+      "file": "sensor-catalog/TCRT5000-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "ad9479e3483618e97e92b06491662004cd2029e885e787f20a99803e38a00e77"
+    },
+    {
+      "id": "sensor-luz-fotoresistencia-ldr",
+      "previousFile": "sensor-catalog/Fotoresistencia-LDR-1.0.2.aulasensor",
+      "file": "sensor-catalog/Fotoresistencia-LDR-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "4d80535a45bb7c40ebed7e376ee7e288908f3ca2def9082c7ecd350720993acd"
+    },
+    {
+      "id": "sensor-movimiento-hc-sr501",
+      "previousFile": "sensor-catalog/HC-SR501-PIR-1.0.2.aulasensor",
+      "file": "sensor-catalog/HC-SR501-PIR-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "888a0365a1210d5eeef08ce56c05b7b0b229b4071127907a14eb38c88efa9ebd"
+    },
+    {
+      "id": "sensor-nfc-pn532-i2c",
+      "previousFile": "sensor-catalog/PN532-I2C-1.7.12.aulasensor",
+      "file": "sensor-catalog/PN532-I2C-1.7.13.aulasensor",
+      "version": "1.7.13",
+      "sha256": "d0b08cbcdf3cdc1c02c547343fb1c6e9a1626afe35e02d6ce0a90c81e27732c0"
+    },
+    {
+      "id": "sensor-obstaculos-fc51-flying-fish",
+      "previousFile": "sensor-catalog/FC-51-Flying-Fish-1.0.2.aulasensor",
+      "file": "sensor-catalog/FC-51-Flying-Fish-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "8c4b9cbe897916d98ddcd11a19b7605eb5e6aa447e60334f2f3312108ac8e37f"
+    },
+    {
+      "id": "sensor-temperatura-dht11",
+      "previousFile": "sensor-catalog/DHT11-1.0.2.aulasensor",
+      "file": "sensor-catalog/DHT11-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "2bed98220b6ad66eb6dd004030703fc133da0f66c1772a2fd3b4c350f287d6fa"
+    },
+    {
+      "id": "sensor-temperatura-dht22",
+      "previousFile": "sensor-catalog/DHT22-1.0.2.aulasensor",
+      "file": "sensor-catalog/DHT22-1.0.3.aulasensor",
+      "version": "1.0.3",
+      "sha256": "d0343c1e6f37460c2a6ec039aa8364f087e2afcb2523440c0257662067405736"
+    },
+    {
+      "id": "sensor-ultrasonico-hc-sr04",
+      "previousFile": "sensor-catalog/HC-SR04-1.4.2.aulasensor",
+      "file": "sensor-catalog/HC-SR04-1.4.3.aulasensor",
+      "version": "1.4.3",
+      "sha256": "0c67f7a74c7c32a5975d8e16778bf0df31a1729e89d6ee3620296cbaf65e8631"
+    }
+  ]
+}
