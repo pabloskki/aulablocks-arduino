@@ -199,7 +199,6 @@ export const toolbox = {
         { kind: 'block', type: 'analog_write', inputs: { VALUE: { shadow: { type: 'math_number', fields: { NUM: 128 } } } } },
         { kind: 'block', type: 'buzzer_tone', inputs: { FREQ: { shadow: { type: 'math_number', fields: { NUM: 440 } } }, TIME: { shadow: { type: 'math_number', fields: { NUM: 500 } } } } },
         { kind: 'block', type: 'rgb_pixel', inputs: { R: { shadow: { type: 'math_number', fields: { NUM: 255 } } }, G: { shadow: { type: 'math_number', fields: { NUM: 80 } } }, B: { shadow: { type: 'math_number', fields: { NUM: 30 } } } } },
-        { kind: 'block', type: 'relay_set' },
         { kind: 'block', type: 'serial_print', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: 'Hola, Arduino!' } } } } }
       ]
     },
