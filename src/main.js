@@ -10,6 +10,7 @@ import { validateExtensionRegistration } from './extension-validation.js';
 import { assertCompatibleSensor } from '../electron/sensor-compatibility.mjs';
 import { AulaConnectionChecker, assertConnectionTypes } from './connection-types.js';
 import { protectModalBackground } from './modal-layer.js';
+import { refreshSensorHelp } from './block-help.js';
 import robotLogo from './assets/aulablocks-robot-logo.png';
 import './styles.css';
 
@@ -1371,6 +1372,7 @@ function registerExtension(extension, addToList) {
     output: block.codeKind === 'expression' && block.output == null ? null : block.output
   }));
   if (definitions.length) Blockly.defineBlocksWithJsonArray(definitions);
+  refreshSensorHelp(workspace, definitions);
   for (const definition of definitions) extensionTypeOwners.set(definition.type, extension.id);
   if (definitions.length) registerExtensionGenerators(extension);
 

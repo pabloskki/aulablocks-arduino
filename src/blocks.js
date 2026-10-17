@@ -1,5 +1,6 @@
 import * as Blockly from 'blockly/core';
 import { advancedBlockDefinitions } from './advanced-blocks.js';
+import { installBlockHelp } from './block-help.js';
 
 const BlocklyApi = Blockly.defineBlocksWithJsonArray ? Blockly : Reflect.get(Blockly, 'default');
 
@@ -174,6 +175,7 @@ export function registerArduinoBlocks() {
     }
   ]);
   BlocklyApi.defineBlocksWithJsonArray(advancedBlockDefinitions);
+  installBlockHelp(BlocklyApi);
 }
 
 function pinOptions(start, end, prefix = '') {

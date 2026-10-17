@@ -20,7 +20,8 @@ test('las once ilustraciones preservan íntegros los bloques, pines y biblioteca
     assert.deepEqual(functional(next), functional(previous));
     assertCompatibleSensor(previous, next);
     assert.equal(next.version, item.version);
-    assert.equal(catalog.sensors.find(s => s.id === next.id).file, item.file);
+    const current = await read(catalog.sensors.find(s => s.id === next.id).file);
+    assert.deepEqual(current.image, next.image);
     assert.equal(next.image.mimeType, 'image/jpeg');
     const image = Buffer.from(next.image.data, 'base64');
     assert.ok(image.length > 1000 && image.length <= 700 * 1024);

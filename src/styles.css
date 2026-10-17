@@ -16,6 +16,21 @@
 body { margin: 0; min-width: 1000px; min-height: 100vh; overflow: hidden; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
+/* Native Blockly hover help: readable without selecting or moving a block. */
+body .blocklyTooltipDiv {
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: min(360px, calc(100vw - 24px));
+  white-space: normal;
+  padding: 12px 15px;
+  border: 1px solid #d8cef5;
+  border-radius: 12px;
+  background: #fffdf5;
+  color: #35286b;
+  box-shadow: 0 4px 18px #35286b24;
+  pointer-events: none;
+}
 
 .app-shell { height: 100vh; display: flex; flex-direction: column; background: #f6f4fb; }
 /* Keep Blockly's own z-index inside the editor, below every application dialog. */

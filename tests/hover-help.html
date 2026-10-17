@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<title>Prueba local de ayudas · AulaBlocks</title>
+<style>
+  body { min-width: 0 !important; padding: 24px; }
+  #editor { height: 450px; width: 95vw; }
+  #result { margin: 16px 0; color: #35286b; font-size: 18px; }
+</style>
+<h2>AulaBlocks · Prueba de ayuda sin clic</h2>
+<p>Prueba automática de eventos de mouse sobre el bloque HC-SR04. No selecciona ni mueve el bloque.</p>
+<div id="editor"></div>
+<p id="result">Esperando la ayuda…</p>
+<script type="module">
+  import * as B from 'blockly/core';
+  import 'blockly/blocks';
+  import * as ES from 'blockly/msg/es';
+  import { registerArduinoBlocks } from '../src/blocks.js';
+  import '../src/styles.css';
+  B.setLocale(ES);
+  registerArduinoBlocks();
+  const catalog = await (await fetch('/sensor-catalog.json')).json();
+  const item = catalog.sensors.find(s => s.id === 'sensor-ultrasonico-hc-sr04');
+  const sensor = await (await fetch('/' + item.file)).json();
+  B.defineBlocksWithJsonArray(sensor.blocks.map(block => ({ ...block, colour: block.colour || sensor.colour })));
+  const workspace = B.inject('editor', { renderer: 'zelos', toolbox: { kind: 'categoryToolbox', contents: [] } });
+  const block = workspace.newBlock('hcsr04_distance_cm');
+  block.initSvg(); block.render(); block.moveBy(30, 40);
+  const saved = JSON.stringify(B.serialization.workspaces.save(workspace));
+  let clicks = 0;
+  block.getSvgRoot().addEventListener('click', () => clicks++);
+  const target = block.getSvgRoot().querySelector('.blocklyPath');
+  const rect = target.getBoundingClientRect();
+  const event = { bubbles: true, pointerType: 'mouse', clientX: rect.x + 40, clientY: rect.y + 20 };
+  target.dispatchEvent(new PointerEvent('pointerover', event));
+  target.dispatchEvent(new PointerEvent('pointermove', event));
+  setTimeout(() => {
+    const unchanged = saved === JSON.stringify(B.serialization.workspaces.save(workspace));
+    const text = B.Tooltip.getDiv()?.textContent.replace(/\s/g, '');
+    const correct = text === sensor.blocks[0].tooltip.replace(/\s/g, '');
+    const ok = B.Tooltip.isVisible() && correct && unchanged && clicks === 0 && !B.getSelected();
+    document.querySelector('#result').textContent = ok
+      ? 'OK: ayuda visible, 0 clics, bloque sin seleccionar y proyecto sin cambios.'
+      : `ERROR: visible=${B.Tooltip.isVisible()}, texto=${correct}, sin cambios=${unchanged}, clics=${clicks}`;
+  }, B.Tooltip.HOVER_MS + 100);
+</script>
+</html>
