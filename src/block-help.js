@@ -9,7 +9,7 @@ export const blockHelp = {
   wait_ms: 'Hace una pausa antes de seguir. 1000 milisegundos son 1 segundo. Durante la pausa no se ejecutan los siguientes bloques.',
   servo_write: 'Mueve un servo de posición al ángulo que elijas, entre 0 y 180 grados. Por ejemplo, 90 lo lleva al centro.',
   motor_drive: 'Elige hacia dónde gira el motor y su velocidad, de 0 a 255. Necesitas un controlador de motores; no lo conectes directamente a Arduino.',
-  ultrasonic_read: 'Entrega la distancia que mide el sensor, en centímetros. Por ejemplo, 20 significa que el objeto está a unos 20 cm.',
+  ultrasonic_read: 'Entrega la distancia en centímetros. Sin eco devuelve NaN (lectura inválida), nunca 0 cm. No interpretes una lectura inválida como un camino libre. El paquete HC-SR04 incluye un bloque para comprobar la validez.',
   dht_read: block => block.getFieldValue('KIND') === 'HUM'
     ? 'Entrega la humedad del aire en porcentaje. Por ejemplo, 60 significa 60 % de humedad.'
     : 'Entrega la temperatura en grados Celsius. Por ejemplo, 25 significa 25 °C.',

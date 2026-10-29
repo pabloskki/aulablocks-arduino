@@ -32,7 +32,7 @@ test('ciclo 4: bloques sueltos desactivados no impiden comprobar', () => {
     workspace: { getAllBlocks: () => starts, getTopBlocks: () => [...starts, { type: 'text', disabled: true }] },
     isExecutableBlock: b => !b.disabled, assertConnectionTypes: () => {}, extensions: [],
     document: { querySelector: () => ({ value: 'uno' }) },
-    findPinIssues: () => ({ invalid: [], conflicts: [], timerConflicts: [] })
+    findPinIssues: () => ({ invalid: [], conflicts: [], timerConflicts: [], toneTimerConflicts: [] })
   });
   assert.equal(vm.runInContext(source + ';projectIssue()', context), null);
   starts.push({ type: 'arduino_loop' });

@@ -1,6 +1,7 @@
 import * as Blockly from 'blockly/core';
 import { isExecutableBlock } from './executable-blocks.js';
 import { assertConnectionTypes } from './connection-types.js';
+import { ultrasonicHelper } from './ultrasonic-code.js';
 
 const BlocklyApi = Blockly.CodeGenerator ? Blockly : Reflect.get(Blockly, 'default');
 
@@ -118,7 +119,7 @@ arduinoGenerator.forBlock.motor_drive = (block) => {
   const second = dir === 'FORWARD' ? 'LOW' : 'HIGH';
   return `digitalWrite(${in1}, ${first});\ndigitalWrite(${in2}, ${second});\nanalogWrite(${pwm}, ${speed});\n`;
 };
-arduinoGenerator.forBlock.ultrasonic_read = (block) => [`medirDistancia(${block.getFieldValue('TRIG')}, ${block.getFieldValue('ECHO')})`, ORDER.ATOMIC];
+arduinoGenerator.forBlock.ultrasonic_read = (block) => [`medirDistancia_${block.getFieldValue('TRIG')}_${block.getFieldValue('ECHO')}()`, ORDER.ATOMIC];
 arduinoGenerator.forBlock.dht_read = (block) => {
   const method = block.getFieldValue('KIND') === 'TEMP' ? 'readTemperature' : 'readHumidity';
   return [`dht_${block.getFieldValue('PIN')}.${method}()`, ORDER.ATOMIC];
@@ -196,6 +197,7 @@ export function generateSketch(workspace, extensions = []) {
       for (const field of ['IN1', 'IN2', 'PWM']) setup.add(`pinMode(${block.getFieldValue(field)}, OUTPUT);`);
     }
     if (block.type === 'ultrasonic_read') {
+      includes.add('#include <math.h>');
       setup.add(`pinMode(${block.getFieldValue('TRIG')}, OUTPUT);`);
       setup.add(`pinMode(${block.getFieldValue('ECHO')}, INPUT);`);
     }
@@ -293,7 +295,9 @@ export function generateSketch(workspace, extensions = []) {
   const loopEvents = workspace.getTopBlocks(true).filter((block) => block.type === 'arduino_loop' && isExecutableBlock(block));
   const setupBody = setupEvents.map((block) => arduinoGenerator.statementToCode(block, 'DO')).join('');
   const loopBody = loopEvents.map((block) => arduinoGenerator.statementToCode(block, 'DO')).join('');
-  let helpers = types.has('ultrasonic_read') ? `\nfloat medirDistancia(int trig, int echo) {\n  digitalWrite(trig, LOW);\n  delayMicroseconds(2);\n  digitalWrite(trig, HIGH);\n  delayMicroseconds(10);\n  digitalWrite(trig, LOW);\n  long duracion = pulseIn(echo, HIGH, 30000);\n  return duracion * 0.0343 / 2.0;\n}\n` : '';
+  let helpers = [...new Set(allBlocks.filter(block => block.type === 'ultrasonic_read').map(block =>
+    ultrasonicHelper(`medirDistancia_${block.getFieldValue('TRIG')}_${block.getFieldValue('ECHO')}`, block.getFieldValue('TRIG'), block.getFieldValue('ECHO'))
+  ))].map(helper => `\n${helper}\n`).join('');
   if (types.has('thermistor_celsius')) helpers += `\nfloat temperaturaNTC(int pin, float resistenciaSerie) {\n  int lectura = analogRead(pin);\n  if (lectura <= 0) return -273.15;\n  float resistencia = resistenciaSerie * (1023.0 / lectura - 1.0);\n  float kelvin = 1.0 / (log(resistencia / 10000.0) / 3950.0 + 1.0 / 298.15);\n  return kelvin - 273.15;\n}\n`;
   if (types.has('keypad_key') || types.has('keypad_password_ok')) helpers += `\nString leerTecla(Keypad &teclado) {\n  char tecla = teclado.getKey();\n  return tecla ? String(tecla) : String("");\n}\n\nbool claveIngresada(Keypad &teclado, const String &correcta) {\n  static String entrada = "";\n  char tecla = teclado.getKey();\n  if (!tecla) return false;\n  if (tecla == '*') { entrada = ""; return false; }\n  if (tecla == '#') {\n    bool coincide = entrada == correcta;\n    entrada = "";\n    return coincide;\n  }\n  if (entrada.length() < 16) entrada += tecla;\n  return false;\n}\n`;
   if (types.has('rfid_card_present') || types.has('rfid_uid_matches') || types.has('rfid_uid_text')) helpers += `\nbool tarjetaDisponible(MFRC522 &lector) {\n  return lector.PICC_IsNewCardPresent() && lector.PICC_ReadCardSerial();\n}\n\nString uidTarjeta(MFRC522 &lector) {\n  String uid = "";\n  for (byte i = 0; i < lector.uid.size; i++) {\n    if (i) uid += " ";\n    if (lector.uid.uidByte[i] < 0x10) uid += "0";\n    uid += String(lector.uid.uidByte[i], HEX);\n  }\n  uid.toUpperCase();\n  return uid;\n}\n\nbool tarjetaCoincide(MFRC522 &lector, String esperado) {\n  if (!tarjetaDisponible(lector)) return false;\n  esperado.toUpperCase();\n  bool coincide = uidTarjeta(lector) == esperado;\n  lector.PICC_HaltA();\n  lector.PCD_StopCrypto1();\n  return coincide;\n}\n`;

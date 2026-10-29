@@ -13,6 +13,21 @@ const CORE_HARDWARE = {
   relay_set: hardware(['PIN', 'digital-output']),
   rgb_pixel: hardware(['PIN', 'digital-output']),
   servo_write: hardware(['PIN', 'digital-output']),
+  dht_read: hardware(['PIN', 'digital-io']),
+  pir_motion: hardware(['PIN', 'digital-input']),
+  line_sensor: hardware(['PIN', 'digital-input']),
+  obstacle_sensor: hardware(['PIN', 'digital-input']),
+  tilt_sensor: hardware(['PIN', 'digital-input']),
+  analog_sensor: hardware(['PIN', 'analog-input']),
+  thermistor_celsius: hardware(['PIN', 'analog-input']),
+  joystick_axis: hardware(['PIN', 'analog-input']),
+  lcd_print: lcdHardware(),
+  lcd_clear: lcdHardware(),
+  rfid_card_present: rfidHardware(),
+  rfid_uid_matches: rfidHardware(),
+  rfid_uid_text: rfidHardware(),
+  robot_drive: hardware(['ENA', 'pwm-output'], ['IN1', 'digital-output'], ['IN2', 'digital-output'], ['ENB', 'pwm-output'], ['IN3', 'digital-output'], ['IN4', 'digital-output']),
+  stepper_move: hardware(['IN1', 'digital-output'], ['IN2', 'digital-output'], ['IN3', 'digital-output'], ['IN4', 'digital-output']),
   ultrasonic_read: hardware(['TRIG', 'digital-output'], ['ECHO', 'digital-input']),
   motor_drive: hardware(['IN1', 'digital-output'], ['IN2', 'digital-output'], ['PWM', 'pwm-output']),
   keypad_key: hardware(['R1', 'digital-io'], ['R2', 'digital-io'], ['R3', 'digital-io'], ['R4', 'digital-io'], ['C1', 'digital-io'], ['C2', 'digital-io'], ['C3', 'digital-io'], ['C4', 'digital-io']),
@@ -36,7 +51,7 @@ export function findPinIssues(blocks, extensions, board) {
       if ((extensions || []).some((extension) => (extension.blocks || []).some((item) => item.type === block.type))) unknown.add(block.type);
       continue;
     }
-    const owner = definition.owner || `aulablocks:${block.type}`;
+    const owner = definition.owner || `aulablocks:${definition.deviceType || (block.type.startsWith('keypad_') ? 'keypad' : block.type)}`;
     const keyFields = definition.deviceKey || (definition.pins || []).map((pin) => pin.field).filter(Boolean);
     const deviceKey = keyFields.length
       ? keyFields.map((field) => `${field}=${block.getFieldValue(field) || ''}`).join('|')
@@ -99,7 +114,24 @@ export function findPinIssues(blocks, extensions, board) {
   const timerConflicts = servoActive && ['uno', 'nano'].includes(board)
     ? [...new Set(claims.filter(claim => claim.mode === 'pwm-output' && ['D9', 'D10'].includes(claim.pin)).map(claim => claim.pin))]
     : [];
-  return { invalid, conflicts, unknown: [...unknown], timerConflicts };
+  const toneTimerConflicts = activeTypes.has('buzzer_tone') && ['uno', 'nano'].includes(board)
+    ? [...new Set(claims.filter(claim => claim.mode === 'pwm-output' && ['D3', 'D11'].includes(claim.pin)).map(claim => claim.pin))]
+    : [];
+  return { invalid, conflicts, unknown: [...unknown], timerConflicts, toneTimerConflicts };
+}
+
+function lcdHardware() {
+  return { deviceType: 'lcd', deviceKey: ['ADDRESS'], pins: [
+    { pin: 'A4', name: 'SDA', mode: 'i2c', sharedBus: 'i2c' },
+    { pin: 'A5', name: 'SCL', mode: 'i2c', sharedBus: 'i2c' }
+  ] };
+}
+
+function rfidHardware() {
+  return { deviceType: 'rfid', deviceKey: ['SS', 'RST'], pins: [
+    { field: 'SS', mode: 'digital-output' }, { field: 'RST', mode: 'digital-output' },
+    ...[['D11', 'MOSI'], ['D12', 'MISO'], ['D13', 'SCK']].map(([pin, name]) => ({ pin, name, mode: 'spi', sharedBus: 'spi' }))
+  ] };
 }
 
 export function normalizePin(value) {

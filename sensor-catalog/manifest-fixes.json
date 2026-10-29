@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-29",
+  "sensors": [
+    {
+      "id": "sensor-ultrasonico-hc-sr04",
+      "previousFile": "sensor-catalog/HC-SR04-1.4.4.aulasensor",
+      "file": "sensor-catalog/HC-SR04-1.4.5.aulasensor",
+      "version": "1.4.5",
+      "sha256": "ffb19291211296df7d7bcc7ff4c6ec7c23ba75bfed959047ab3c94fd53a1f375"
+    }
+  ]
+}

@@ -1450,6 +1450,7 @@ function projectIssue() {
   if (!setupCount || !loopCount) return { title: 'Falta un bloque de inicio', message: 'Todo proyecto necesita “al encender Arduino” y “repetir siempre”. Puedes encontrarlos en la categoría Inicio.' };
   if (setupCount > 1 || loopCount > 1) return { title: 'Hay inicios repetidos', message: 'Usa un solo bloque “al encender Arduino” y un solo “repetir siempre”.' };
   if (pinIssues.timerConflicts.length) return { title: 'Servo y PWM usan el mismo temporizador', message: 'Al usar Servo, no regules motores o brillo con PWM en los pines 9 o 10. Cambia esa salida PWM a 3, 5, 6 u 11 y revisa que el pin esté libre.' };
+  if (pinIssues.toneTimerConflicts.length) return { title: 'Zumbador y PWM usan el mismo temporizador', message: 'El sonido del zumbador interfiere con el control de velocidad o brillo por PWM en los pines 3 y 11. Cambia esa salida PWM a 5 o 6 y revisa que el pin esté libre.' };
   if (loose.length) return { title: 'Hay bloques sueltos', message: `Encontramos ${loose.length} bloque${loose.length > 1 ? 's' : ''} sin conectar. Únelos a un bloque de Inicio para que Arduino los ejecute.` };
   if (pinIssues.invalid.length) return { title: 'Revisa los pines', message: `Estos pines no existen o no admiten la función elegida en ${document.querySelector('#board-select').selectedOptions[0].text}: ${[...new Set(pinIssues.invalid.map((item) => item.pin))].join(', ')}. Revisa las conexiones y la placa.` };
   if (pinIssues.conflicts.length) {

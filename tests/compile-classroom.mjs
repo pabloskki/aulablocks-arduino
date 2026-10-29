@@ -17,7 +17,7 @@ const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'aulablocks-classroom-
 const service = serviceModule.createArduinoService({ runtimeRoot: path.join(root, 'tools/arduino-cli'), writableRoot: temporary });
 const workspace = new B.Workspace();
 try {
-  const packages = await Promise.all(['DHT22-1.0.1', 'HC-SR04-1.4.1', 'Servo-SG90-1.0.2'].map(async name =>
+  const packages = await Promise.all(['DHT22-1.0.4', 'HC-SR04-1.4.5', 'Servo-SG90-1.0.5'].map(async name =>
     JSON.parse(await fs.readFile(path.join(root, 'sensor-catalog', name + '.aulasensor'), 'utf8'))));
   await service.installSensorPackages(packages);
   for (const extension of packages) {
@@ -45,7 +45,7 @@ try {
   const code = generateSketch(workspace, packages);
   for (const board of ['uno', 'nano']) {
     const issues = findPinIssues(workspace.getAllBlocks(false), packages, board);
-    if (issues.invalid.length || issues.conflicts.length || issues.timerConflicts.length) throw new Error(JSON.stringify(issues));
+    if (issues.invalid.length || issues.conflicts.length || issues.timerConflicts.length || issues.toneTimerConflicts.length) throw new Error(JSON.stringify(issues));
     await service.buildAndMaybeUpload({ board, upload: false, projectName: 'aula_dht_ultra_servo', code });
     console.log('DHT22 + HC-SR04 + Servo: ' + board + ' OK');
     await service.buildAndMaybeUpload({

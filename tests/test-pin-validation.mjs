@@ -18,7 +18,7 @@ test('rechaza pines desconocidos y capacidades incorrectas', () => {
 
 test('paquetes antiguos informan una advertencia sin conflicto', () => {
   const result = findPinIssues([block('old')], [{ blocks: [{ type: 'old' }] }], 'uno');
-  assert.deepEqual(result, { invalid: [], conflicts: [], unknown: ['old'], timerConflicts: [] });
+  assert.deepEqual(result, { invalid: [], conflicts: [], unknown: ['old'], timerConflicts: [], toneTimerConflicts: [] });
 });
 const sensor = {
   id: 'hcsr04', name: 'HC-SR04', blocks: [{

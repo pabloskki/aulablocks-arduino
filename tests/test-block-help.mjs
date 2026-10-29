@@ -100,7 +100,12 @@ test('11 paquetes: ayudas completas, mismo código generado, bibliotecas, imáge
     assert.deepEqual(functional(next), functional(old));
     assertCompatibleSensor(old, next);
     assert.equal(sketch(old), sketch(next), item.id);
-    assert.equal(catalog.sensors.find(sensor => sensor.id === item.id).file, item.file);
+    // This historical manifest remains immutable when a newer sensor is released.
+    const current = catalog.sensors.find(sensor => sensor.id === item.id);
+    assert.ok(current);
+    const fix = (await read('sensor-catalog/manifest-fixes.json')).sensors.find(sensor => sensor.id === item.id);
+    assert.equal(current.file, fix?.file || item.file);
+    assert.equal((await read(current.file)).id, item.id);
     const bytes = await fs.readFile(new URL('../' + item.file, import.meta.url));
     assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
     for (const block of next.blocks) {

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-17",
+  "updated": "2026-10-29",
   "sensors": [
     {
       "id": "actuador-servo-sg90",
@@ -64,9 +64,9 @@
     {
       "id": "sensor-ultrasonico-hc-sr04",
       "name": "Sensor ultrasónico HC-SR04",
-      "version": "1.4.4",
-      "file": "sensor-catalog/HC-SR04-1.4.4.aulasensor"
+      "version": "1.4.5",
+      "file": "sensor-catalog/HC-SR04-1.4.5.aulasensor"
     }
   ],
-  "releaseTarget": "0.10.1"
+  "releaseTarget": "0.10.3"
 }
