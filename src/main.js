@@ -429,10 +429,11 @@ async function checkAppUpdatesManually() {
 }
 
 async function handleUpdateStatus(status) {
-  if (status.state === 'downloading') {
+  document.querySelector('#app').inert = status.state === 'installing';
+  if (status.state === 'downloading' || status.state === 'installing') {
     manualUpdateCheckPending = false;
     document.querySelector('#check-app-updates').disabled = true;
-    document.querySelector('#app-version-text').textContent = `Descargando… ${status.percent || 0}%`;
+    document.querySelector('#app-version-text').textContent = status.state === 'installing' ? 'Instalando…' : `Descargando… ${status.percent || 0}%`;
   } else {
     const wasManual = manualUpdateCheckPending;
     manualUpdateCheckPending = false;
@@ -449,14 +450,14 @@ async function handleUpdateStatus(status) {
     if (status.canAutoInstall) {
       const proceed = await askConfirmation(
         'Hay una actualización disponible',
-        `AulaBlocks ${status.version} está disponible (tienes ${window.aulaBlocks.appVersion || 'esta versión'}). Se descarga en segundo plano y se instala la próxima vez que abras el programa. ¿Descargarla ahora?`,
+        `AulaBlocks ${status.version} está disponible (tienes ${window.aulaBlocks.appVersion || 'esta versión'}). Se descargará en segundo plano. Después podrás instalarla desde aquí; el sistema puede pedir permiso de administrador. ¿Descargarla ahora?`,
         'Descargar'
       );
       if (proceed) window.aulaBlocks.confirmUpdateDownload();
     } else {
       const proceed = await askConfirmation(
         'Hay una actualización disponible',
-        `AulaBlocks ${status.version} está disponible. En Linux, la actualización no se instala sola: hay que descargarla desde la página del proyecto. ¿Abrir esa página ahora?`,
+        `AulaBlocks ${status.version} está disponible. Esta copia no admite instalación desde el programa. ¿Abrir la página de descargas?`,
         'Abrir página'
       );
       if (proceed) window.aulaBlocks.openUpdateReleasesPage();
@@ -464,12 +465,23 @@ async function handleUpdateStatus(status) {
   } else if (status.state === 'ready') {
     const proceed = await askConfirmation(
       'Actualización lista',
-      'Se descargó la nueva versión de AulaBlocks. Para instalarla, el programa se va a cerrar y puede pedir permiso de administrador (acepta esa ventana para que la instalación termine bien). Guarda tu proyecto antes de continuar.',
+      'La nueva versión está descargada y verificada. Antes de instalar se guardarán los cambios pendientes de tu proyecto. El sistema puede pedir la contraseña o el permiso de administrador. AulaBlocks se reiniciará al terminar.',
       'Instalar y reiniciar ahora'
     );
-    if (proceed) window.aulaBlocks.installUpdateNow();
+    if (proceed) {
+      if (hasUnsavedChanges) await saveProject();
+      if (hasUnsavedChanges) {
+        showToast('Actualización pendiente: guarda tu proyecto antes de instalar.');
+        return;
+      }
+      await window.aulaBlocks.installUpdateNow();
+    }
     else showToast('Instalación pendiente. Vuelve a buscar actualizaciones cuando quieras instalarla.');
+  } else if (status.state === 'manual') {
+    const proceed = await askConfirmation('Actualizar esta copia', 'Esta copia portátil no admite instalación desde el programa. En Linux Mint, instala el paquete .deb para recibir las próximas actualizaciones directamente en AulaBlocks. ¿Abrir las descargas?', 'Abrir descargas');
+    if (proceed) window.aulaBlocks.openUpdateReleasesPage();
   } else if (status.state === 'error') {
+    if (status.operation !== 'check') openModal('No pudimos actualizar AulaBlocks', status.message || 'Comprueba la conexión y vuelve a intentarlo. Si cancelaste el permiso de administrador, puedes reintentar la instalación desde Buscar actualizaciones.', '!');
     console.warn('AulaBlocks: no se pudo revisar actualizaciones —', status.message);
   }
 }

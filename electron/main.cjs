@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, autoUpdater: nativeAutoUpdater } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { saveSafely, validateProject, readRecovery } = require('./project-storage.cjs');
@@ -201,10 +201,13 @@ ipcMain.handle('sensor-updates-list-catalog', async () => {
 });
 ipcMain.handle('sensor-updates-install', async (_event, entries) => sensorUpdatesService().installUpdates(entries));
 
-ipcMain.handle('update-check', async () => updaterService().checkForUpdates());
+ipcMain.handle('update-check', async () => updaterService().checkForUpdates({ manual: true }));
 ipcMain.handle('update-confirm-download', async () => updaterService().confirmDownload());
 ipcMain.handle('update-install-now', async () => updaterService().installNow());
 ipcMain.handle('update-open-releases-page', async () => updaterService().openReleasesPage());
+
+// Only a successful updater installation may bypass the normal close dialog.
+nativeAutoUpdater.on('before-quit-for-update', () => { allowWindowClose = true; });
 
 ipcMain.on('app-close-decision', (_event, canClose) => {
   if (!canClose || !mainWindow) return;
